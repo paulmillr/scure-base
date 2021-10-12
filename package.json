@@ -1,0 +1,38 @@
+{
+  "name": "micro-base",
+  "version": "0.1.0",
+  "description": "Fast, secure & minimal implementation of bech32, base64, base58, base32, base16",
+  "main": "lib/index.js",
+  "files": ["lib"],
+  "scripts": {
+    "build": "tsc -d",
+    "lint": "prettier --print-width 100 --single-quote --check src",
+    "test": "node test/index.js"
+  },
+  "homepage": "https://github.com/paulmillr/micro-base",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paulmillr/micro-base.git"
+  },
+  "keywords": [
+    "bech32",
+    "base64",
+    "base58",
+    "base32",
+    "base16",
+    "rfc4648",
+    "rfc3548",
+    "crockford",
+    "encode",
+    "encoder",
+    "base-x",
+    "base"
+  ],
+  "author": "Paul Miller (https://paulmillr.com)",
+  "license": "MIT",
+  "devDependencies": {
+    "micro-should": "^0.2.0",
+    "prettier": "^2.3.2",
+    "typescript": "^4.3"
+  }
+}
