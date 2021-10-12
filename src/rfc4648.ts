@@ -1,5 +1,6 @@
 import { radix2, alphabet, padding, normalize, join, BytesCoder, chain } from './utils';
 
+// RFC 4648 aka RFC 3548
 export const base16: BytesCoder = chain(radix2(4), alphabet('0123456789ABCDEF'), join(''));
 export const base32: BytesCoder = chain(
   radix2(5),

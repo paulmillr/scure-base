@@ -39,8 +39,10 @@ export const base58xmr: utils.BytesCoder = {
   },
 };
 
-export const base58check = (sha256: (data: Uint8Array) => Uint8Array): utils.BytesCoder =>
-  utils.chain(
-    utils.checksum(4, (data) => sha256(sha256(data))),
-    base58
-  );
+export const base58check = {
+  encode: (sha256: (data: Uint8Array) => Uint8Array): utils.BytesCoder =>
+    utils.chain(
+      utils.checksum(4, (data) => sha256(sha256(data))),
+      base58
+    ),
+};

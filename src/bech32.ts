@@ -1,11 +1,12 @@
 import * as utils from './utils';
 
+// Bech32
 export interface Decoded {
   prefix: string;
   words: number[];
 }
 
-const ALPHABET: utils.Coder<number[], string> = utils.chain(
+const BECH_ALPHABET: utils.Coder<number[], string> = utils.chain(
   utils.alphabet('qpzry9x8gf2tvdw0s3jn54khce6mua7l'),
   utils.join('')
 );
@@ -14,7 +15,7 @@ export const { encode: toWords, decode: fromWords } = utils.radix2(5);
 export const fromWordsUnsafe = utils.unsafeWrapper(fromWords);
 
 const POLYMOD_GENERATORS = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
-function polymod(pre: number): number {
+function bech32Polymod(pre: number): number {
   const b = pre >> 25;
   let chk = (pre & 0x1ffffff) << 5;
   for (let i = 0; i < POLYMOD_GENERATORS.length; i++) {
@@ -23,20 +24,20 @@ function polymod(pre: number): number {
   return chk;
 }
 
-function checksum(prefix: string, words: number[], encodingConst = 1): string {
+function bechChecksum(prefix: string, words: number[], encodingConst = 1): string {
   const len = prefix.length;
   let chk = 1;
   for (let i = 0; i < len; i++) {
     const c = prefix.charCodeAt(i);
     if (c < 33 || c > 126) throw new Error(`Invalid prefix (${prefix})`);
-    chk = polymod(chk) ^ (c >> 5);
+    chk = bech32Polymod(chk) ^ (c >> 5);
   }
-  chk = polymod(chk);
-  for (let i = 0; i < len; i++) chk = polymod(chk) ^ (prefix.charCodeAt(i) & 0x1f);
-  for (let v of words) chk = polymod(chk) ^ v;
-  for (let i = 0; i < 6; i++) chk = polymod(chk);
+  chk = bech32Polymod(chk);
+  for (let i = 0; i < len; i++) chk = bech32Polymod(chk) ^ (prefix.charCodeAt(i) & 0x1f);
+  for (let v of words) chk = bech32Polymod(chk) ^ v;
+  for (let i = 0; i < 6; i++) chk = bech32Polymod(chk);
   chk ^= encodingConst;
-  return ALPHABET.encode(utils.convertRadix2([chk % 2 ** 30], 30, 5, false));
+  return BECH_ALPHABET.encode(utils.convertRadix2([chk % 2 ** 30], 30, 5, false));
 }
 
 export function genBech32(encoding: 'bech32' | 'bech32m') {
@@ -51,7 +52,7 @@ export function genBech32(encoding: 'bech32' | 'bech32m') {
     if (limit !== false && actualLength > limit)
       throw new TypeError(`Length ${actualLength} exceeds limit ${limit}`);
     prefix = prefix.toLowerCase();
-    return `${prefix}1${ALPHABET.encode(words)}${checksum(prefix, words, ENCODING_CONST)}`;
+    return `${prefix}1${BECH_ALPHABET.encode(words)}${bechChecksum(prefix, words, ENCODING_CONST)}`;
   }
 
   function decode(str: string, limit: number | false = 90): Decoded {
@@ -69,8 +70,8 @@ export function genBech32(encoding: 'bech32' | 'bech32m') {
       throw new Error(`Letter "1" must be present between prefix and data only`);
     const [prefix, _words] = [str.slice(0, sepIndex), str.slice(sepIndex + 1)];
     if (_words.length < 6) throw new Error('Data must be at least 6 characters long');
-    const words = ALPHABET.decode(_words).slice(0, -6);
-    const sum = checksum(prefix, words, ENCODING_CONST);
+    const words = BECH_ALPHABET.decode(_words).slice(0, -6);
+    const sum = bechChecksum(prefix, words, ENCODING_CONST);
     if (!_words.endsWith(sum)) throw new Error(`Invalid checksum in ${str}: expected "${sum}"`);
     return { prefix, words };
   }

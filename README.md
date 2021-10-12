@@ -15,19 +15,23 @@ Matches following specs:
 
 
 ```js
-const {bech32, bytesToString, stringToBytes} = require('micro-base');
-const base64Encoded = bytesToString(new Uint8Array([1, 2,3]), 'base64');
-const data = stringToBytes(base64Encoded, 'base64');
-const be = bech32.encode(bech32.toWords(new Uint8Array([1, 2, 3])))
+const {base64, bech32, str, bytes} = require('micro-base');
+const b64Encoded = str('base64', Uint8Array.from([1, 2,3]));
+const data = bytes('base64', b64Encoded);
+const be = bech32.encode(bech32.toWords(Uint8Array.from([1, 2, 3])))
 const dataBe = bech32.decode(be);
 ```
 
 ### RFC 4648 (base64, base32, base16)
 
 ```js
-const { bytesToString, stringToBytes } = require('micro-base');
-const base64Encoded = bytesToString(new Uint8Array([1, 2,3]), 'base64');
-const data = stringToBytes(base64Encoded, 'base64');
+const { base64, str, bytes } = require('micro-base');
+const data = Uint8Array.from([1, 2,3]);
+const encoded = base64.encode(data);
+const decoded = base64.decode(encoded);
+// same
+str('base64', data);
+bytes('base64', encoded);
 ```
 
 Second argument (type) could be:
