@@ -1,7 +1,6 @@
 const assert = require('assert');
 const { should } = require('micro-should');
-const _bech32 = require('../lib/bech32');
-const { bech32, bech32m } = _bech32;
+const { bech32, bech32m } = require('..');
 
 const BECH32_VALID = [
   { string: 'A12UEL5L', prefix: 'A', words: [] },
@@ -273,19 +272,19 @@ for (let v of BECH32M_VALID) {
   });
   should(`decode ${v.string}`, () => {
     const expected = { prefix: v.prefix.toLowerCase(), words: v.words };
-    assert.deepStrictEqual(_bech32.bech32m.decodeUnsafe(v.string, v.limit), expected);
-    assert.deepStrictEqual(_bech32.bech32m.decode(v.string, v.limit), expected);
+    assert.deepStrictEqual(bech32m.decodeUnsafe(v.string, v.limit), expected);
+    assert.deepStrictEqual(bech32m.decode(v.string, v.limit), expected);
   });
   should(`throw on ${v.string} with 1 bit flipped`, () => {
     const buffer = Buffer.from(v.string, 'utf8');
     buffer[v.string.lastIndexOf('1') + 1] ^= 0x1; // flip a bit, after the prefix
     const str = buffer.toString('utf8');
-    assert.deepStrictEqual(_bech32.bech32m.decodeUnsafe(str, v.limit), undefined);
-    assert.throws(() => _bech32.bech32m.decode(str, v.limit));
+    assert.deepStrictEqual(bech32m.decodeUnsafe(str, v.limit), undefined);
+    assert.throws(() => bech32m.decode(str, v.limit));
   });
   should(`throw on bech32m vector with bech32 ${v.string} `, () => {
-    assert.deepStrictEqual(_bech32.bech32.decodeUnsafe(v.string, v.limit), undefined);
-    assert.throws(() => _bech32.bech32.decode(v.string, v.limit));
+    assert.deepStrictEqual(bech32.decodeUnsafe(v.string, v.limit), undefined);
+    assert.throws(() => bech32.decode(v.string, v.limit));
   });
 }
 
@@ -346,25 +345,25 @@ for (let v of BECH32M_INVALID_ENCODE) {
 
 for (let v of VALID_WORDS) {
   should(`fromWords/toWords ${v.hex}`, () => {
-    const words = _bech32.toWords(Buffer.from(v.hex, 'hex'));
+    const words = bech32.toWords(Buffer.from(v.hex, 'hex'));
     assert.deepStrictEqual(Array.from(words), Array.from(v.words));
-    const bytes = Buffer.from(_bech32.fromWords(v.words));
+    const bytes = Buffer.from(bech32.fromWords(v.words));
     assert.deepStrictEqual(bytes.toString('hex'), v.hex);
-    const bytes2 = Buffer.from(_bech32.fromWordsUnsafe(v.words));
+    const bytes2 = Buffer.from(bech32.fromWordsUnsafe(v.words));
     assert.deepStrictEqual(bytes2.toString('hex'), v.hex);
   });
 }
 
 for (let v of INVALID_WORDS) {
   should(`throw om fromWords`, () => {
-    assert.deepStrictEqual(_bech32.fromWordsUnsafe(v), undefined);
-    assert.throws(() => _bech32.fromWords(v));
+    assert.deepStrictEqual(bech32.fromWordsUnsafe(v), undefined);
+    assert.throws(() => bech32.fromWords(v));
   });
 }
 
 should('toWords/toWordsUnsafe accept Uint8Array', () => {
   const bytes = new Uint8Array([0x00, 0x11, 0x22, 0x33, 0xff]);
-  const words = _bech32.toWords(bytes);
+  const words = bech32.toWords(bytes);
   assert.deepStrictEqual(words, [0, 0, 8, 18, 4, 12, 31, 31]);
 });
 

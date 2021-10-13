@@ -1,6 +1,6 @@
 const assert = require('assert');
 const { should } = require('micro-should');
-const { base58, base58xmr, base58check: _base58check, base58xrp } = require('../lib/base58');
+const { base58, base58xmr, base58check: _base58check, base58xrp } = require('..');
 const VECTORS_2 = require('./vectors/base58.json');
 // https://github.com/bigreddmachine/MoneroPy/blob/master/tests/testdata.py (BSD license)
 const XMR_VECTORS = require('./vectors/base58_xmr.json');

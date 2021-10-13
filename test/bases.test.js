@@ -1,11 +1,9 @@
 const assert = require('assert');
-const { base58, base58xmr, base58check: _base58check, base58xrp } = require('../lib/base58');
+const { base58, base58xmr, base58check: _base58check, base58xrp } = require('..');
 const base58check = _base58check((buf) =>
   Uint8Array.from(require('crypto').createHash('sha256').update(buf).digest())
 );
-const { base64, base64url } = require('../lib/rfc4648');
-const { base32, base32hex, base32crockford } = require('../lib/rfc4648');
-const { str, bytes } = require('../lib/index');
+const { base32, base32hex, base32crockford, base64, base64url, str, bytes } = require('..');
 const { Buffer } = require('buffer');
 const { should } = require('micro-should');
 const { RANDOM } = require('./utils');
@@ -39,8 +37,8 @@ for (const c in NODE_CODERS) {
     for (let i = 0; i < 1024; i++) {
       const buf = RANDOM.slice(0, i);
       const nodeStr = node.encode(buf);
-      assert.deepStrictEqual(nodeStr, str(buf, c));
-      assert.deepStrictEqual(buf, bytes(nodeStr, c));
+      assert.deepStrictEqual(nodeStr, str(c, buf));
+      assert.deepStrictEqual(buf, bytes(c, nodeStr));
     }
   });
 }
