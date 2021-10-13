@@ -8,7 +8,7 @@
   "scripts": {
     "bench": "node test/benchmark/index.js",
     "build": "tsc -d",
-    "lint": "prettier --print-width 100 --single-quote --check src",
+    "lint": "prettier --print-width 100 --single-quote --check index.ts",
     "test": "node test/index.js"
   },
   "author": "Paul Miller (https://paulmillr.com)",
