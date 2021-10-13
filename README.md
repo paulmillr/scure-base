@@ -1,6 +1,6 @@
 # micro-base
 
-Fast, secure & minimal implementation of bech32, rfc 4648 (base64, base32, base16), base58.
+Fast and minimal implementation of bech32, base64, base58, base32 & base16.
 
 Matches following specs:
 
@@ -13,53 +13,35 @@ Matches following specs:
 
 > npm install micro-base
 
-
 ```js
-const {base64, bech32, str, bytes} = require('micro-base');
-const b64Encoded = str('base64', Uint8Array.from([1, 2,3]));
-const data = bytes('base64', b64Encoded);
-const be = bech32.encode(bech32.toWords(Uint8Array.from([1, 2, 3])))
-const dataBe = bech32.decode(be);
-```
+const {base16, base32, base64, base58} = require('micro-base');
+// Flavors
+const {base58xmr, base58xrp, base32hex, base32crockford, base64url} = require('micro-base');
 
-### RFC 4648 (base64, base32, base16)
+const data = Uint8Array.from([1, 2, 3]);
+base64.decode(base64.encode(data));
 
-```js
-const { base64, str, bytes } = require('micro-base');
-const data = Uint8Array.from([1, 2,3]);
-const encoded = base64.encode(data);
-const decoded = base64.decode(encoded);
-// same
-str('base64', data);
-bytes('base64', encoded);
-```
+// Everything has the same API except for bech32 and base58check
+base32.encode(data);
+base16.encode(data);
+base32hex.encode(data);
 
-Second argument (type) could be:
+// bech32
+const {bech32, bech32m} = require('micro-base');
+const words = bech32.toWords(data);
+const be = bech32.encode('prefix', words);
+const {prefix, words} = bech32.decode(be);
+bech32m.encode('prefix', words);
 
-```
-base16
-base32
-base32hex
-base32crockford
-base64
-base64url
-base58
-base58xmr
-base58check
-base58xrp
-```
+// base58check is special-case
+// you need to pass sha256() function that returns Uint8Array
+const {base58check} = require('micro-base');
+base58check(sha256).encode(data);
 
-### bech32
-
-We support bech32 (BIP-0173) and bech32m (BIP-0350).
-
-```js
-const { bech32, bech32m } = require('micro-base');
-const be = bech32.encode(bech32.toWords(new Uint8Array([1, 2, 3])))
-const dataBe = bech32.decode(be);
-
-// bech32m
-bech32m.encode(bech32.toWords(new Uint8Array([1, 2, 3])))
+// Alternative API
+const {str, bytes} = require('micro-base');
+const encoded = str('base64', data);
+const data = bytes('base64', encoded);
 ```
 
 ## License
