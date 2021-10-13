@@ -6,8 +6,7 @@ Matches following specs:
 
 - Bech32, Bech32m: https://en.bitcoin.it/wiki/BIP_0173, https://en.bitcoin.it/wiki/BIP_0350
 - RFC 4648 (aka RFC 3548): Base16, Base32, Base32Hex, Base64, Base64Url
-- Base32 Crockford: https://www.crockford.com/base32.html
-- Base58: https://www.ietf.org/archive/id/draft-msporny-base58-03.txt
+- [Base58](https://www.ietf.org/archive/id/draft-msporny-base58-03.txt), [Base58check](https://en.bitcoin.it/wiki/Base58Check_encoding), [Base32 Crockford](https://www.crockford.com/base32.html)
 
 ## Usage
 
