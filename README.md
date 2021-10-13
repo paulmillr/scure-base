@@ -4,8 +4,8 @@ Fast and minimal implementation of bech32, base64, base58, base32 & base16.
 
 Matches following specs:
 
-- Bech32, Bech32m: https://en.bitcoin.it/wiki/BIP_0173, https://en.bitcoin.it/wiki/BIP_0350
-- RFC 4648 (aka RFC 3548): Base16, Base32, Base32Hex, Base64, Base64Url
+- Bech32, Bech32m: [BIP173](https://en.bitcoin.it/wiki/BIP_0173), [BIP350](https://en.bitcoin.it/wiki/BIP_0350)
+- Base16, Base32, Base32Hex, Base64, Base64Url: [RFC 4648](https://datatracker.ietf.org/doc/html/rfc4648) (aka RFC 3548)
 - [Base58](https://www.ietf.org/archive/id/draft-msporny-base58-03.txt), [Base58check](https://en.bitcoin.it/wiki/Base58Check_encoding), [Base32 Crockford](https://www.crockford.com/base32.html)
 
 ## Usage
