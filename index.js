@@ -249,8 +249,6 @@ function genBech32(encoding) {
     function encode(prefix, words, limit = 90) {
         if (typeof prefix !== 'string')
             throw new Error(`bech32.decode prefix should be string, not ${typeof prefix}`);
-        if (words instanceof Uint8Array)
-            words = toWords(words);
         if (!Array.isArray(words) || (words.length && typeof words[0] !== 'number'))
             throw new Error(`bech32.decode words should be array of numbers, not ${typeof words}`);
         const actualLength = prefix.length + 7 + words.length;
