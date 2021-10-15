@@ -1,7 +1,7 @@
 "use strict";
 /*! micro-base - MIT License (c) 2021 Paul Miller (paulmillr.com) */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.bytes = exports.stringToBytes = exports.str = exports.bytesToString = exports.hex = exports.utf8 = exports.bech32m = exports.bech32 = exports.base58check = exports.base58xmr = exports.base58xrp = exports.base58flickr = exports.base58 = exports.base64url = exports.base64 = exports.base32crockford = exports.base32hex = exports.base32 = exports.base16 = void 0;
+exports.bytes = exports.stringToBytes = exports.str = exports.bytesToString = exports.hex = exports.utf8 = exports.bech32m = exports.bech32 = exports.base58check = exports.base58xmr = exports.base58xrp = exports.base58flickr = exports.base58 = exports.base64url = exports.base64 = exports.base32crockford = exports.base32hex = exports.base32 = exports.base16 = exports.utils = void 0;
 function chain(...args) {
     const wrap = (a, b) => (c) => a(b(c));
     const encode = Array.from(args)
@@ -182,6 +182,7 @@ function checksum(len, fn) {
         },
     };
 }
+exports.utils = { alphabet, chain, checksum, radix2 };
 exports.base16 = chain(radix2(4), alphabet('0123456789ABCDEF'), join(''));
 exports.base32 = chain(radix2(5), alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'), padding(5), join(''));
 exports.base32hex = chain(radix2(5), alphabet('0123456789ABCDEFGHIJKLMNOPQRSTUV'), padding(5), join(''));

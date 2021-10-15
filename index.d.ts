@@ -7,6 +7,26 @@ export interface BytesCoder extends Coder<Uint8Array, string> {
     encode: (data: Uint8Array) => string;
     decode: (str: string) => Uint8Array;
 }
+declare type Chain = [Coder<any, any>, ...Coder<any, any>[]];
+declare type Input<F> = F extends Coder<infer T, any> ? T : never;
+declare type Output<F> = F extends Coder<any, infer T> ? T : never;
+declare type First<T> = T extends [infer U, ...any[]] ? U : never;
+declare type Last<T> = T extends [...any[], infer U] ? U : never;
+declare type Tail<T> = T extends [any, ...infer U] ? U : never;
+declare type AsChain<C extends Chain, Rest = Tail<C>> = {
+    [K in keyof C]: Coder<Input<C[K]>, Input<K extends keyof Rest ? Rest[K] : any>>;
+};
+declare function chain<T extends Chain & AsChain<T>>(...args: T): Coder<Input<First<T>>, Output<Last<T>>>;
+declare type Alphabet = string[] | string;
+declare function alphabet(alphabet: Alphabet): Coder<number[], string[]>;
+declare function radix2(bits: number, revPadding?: boolean): Coder<Uint8Array, number[]>;
+declare function checksum(len: number, fn: (data: Uint8Array) => Uint8Array): Coder<Uint8Array, Uint8Array>;
+export declare const utils: {
+    alphabet: typeof alphabet;
+    chain: typeof chain;
+    checksum: typeof checksum;
+    radix2: typeof radix2;
+};
 export declare const base16: BytesCoder;
 export declare const base32: BytesCoder;
 export declare const base32hex: BytesCoder;

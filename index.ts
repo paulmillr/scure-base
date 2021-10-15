@@ -215,6 +215,7 @@ function checksum(
     },
   };
 }
+export const utils = { alphabet, chain, checksum, radix2 };
 
 // RFC 4648 aka RFC 3548
 // ---------------------
