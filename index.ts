@@ -165,6 +165,9 @@ function radix(num: number): Coder<Uint8Array, number[]> {
     },
   };
 }
+
+// If both bases are power of same number (like `2**8 <-> 2**64`),
+// there is a linear algorithm. For now we have implementation for power-of-two bases only
 function radix2(bits: number, revPadding = false): Coder<Uint8Array, number[]> {
   return {
     encode: (bytes: Uint8Array) => {
