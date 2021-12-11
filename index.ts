@@ -1,6 +1,9 @@
 /*! micro-base - MIT License (c) 2021 Paul Miller (paulmillr.com) */
 
 // Utilities
+export function assertNumber(n: number) {
+  if (!Number.isSafeInteger(n)) throw new Error(`Wrong integer: ${n}`);
+}
 export interface Coder<F, T> {
   encode(from: F): T;
   decode(to: T): F;
@@ -51,6 +54,7 @@ function alphabet(alphabet: Alphabet): Coder<number[], string[]> {
       if (!Array.isArray(digits) || (digits.length && typeof digits[0] !== 'number'))
         throw new Error('alphabet.encode input should be an array of numbers');
       return digits.map((i) => {
+        assertNumber(i);
         if (i < 0 || i >= alphabet.length)
           throw new Error(`Digit index outside alphabet: ${i} (alphabet: ${alphabet.length})`);
         return alphabet[i];
@@ -69,6 +73,7 @@ function alphabet(alphabet: Alphabet): Coder<number[], string[]> {
 }
 
 function join(separator = ''): Coder<string[], string> {
+  if (typeof separator !== 'string') throw new Error('join separator should be string');
   return {
     encode: (from) => {
       if (!Array.isArray(from) || (from.length && typeof from[0] !== 'string'))
@@ -84,6 +89,8 @@ function join(separator = ''): Coder<string[], string> {
 
 // Pad strings array so it has integer number of bits
 function padding(bits: number, chr = '='): Coder<string[], string[]> {
+  assertNumber(bits);
+  if (typeof chr !== 'string') throw new Error('padding chr should be string');
   return {
     encode(data: string[]): string[] {
       if (!Array.isArray(data) || (data.length && typeof data[0] !== 'string'))
@@ -97,9 +104,9 @@ function padding(bits: number, chr = '='): Coder<string[], string[]> {
       let end = input.length;
       if ((end * bits) % 8)
         throw new Error('Invalid padding: string should have whole number of bytes');
-      while (end > 0 && input[end - 1] === chr) {
-        end--;
-        if (!((end * bits) % 8)) throw new Error('Invalid padding: string has too much padding');
+      for (; end > 0 && input[end - 1] === chr; end--) {
+        if (!(((end - 1) * bits) % 8))
+          throw new Error('Invalid padding: string has too much padding');
       }
       return input.slice(0, end);
     },
@@ -107,11 +114,16 @@ function padding(bits: number, chr = '='): Coder<string[], string[]> {
 }
 
 function normalize<T>(fn: (val: T) => T): Coder<T, T> {
+  if (typeof fn !== 'function') throw new Error('normalize fn should be function');
   return { encode: (from: T) => from, decode: (to: T) => fn(to) };
 }
 
 // NOTE: it has quadratic time complexity
 function convertRadix(data: number[], from: number, to: number) {
+  // base 1 is impossible
+  if (from < 2) throw new Error(`convertRadix: wrong from=${from}, base cannot be less than 2`);
+  if (to < 2) throw new Error(`convertRadix: wrong to=${to}, base cannot be less than 2`);
+  if (!Array.isArray(data)) throw new Error('convertRadix: data should be array');
   if (!data.length) return [];
   let pos = 0;
   const res = [];
@@ -120,9 +132,19 @@ function convertRadix(data: number[], from: number, to: number) {
     let carry = 0;
     let done = true;
     for (let i = pos; i < digits.length; i++) {
-      const digit = from * carry + digits[i];
-      carry = digit % to;
-      digits[i] = Math.floor(digit / to);
+      const digit = digits[i];
+      const digitBase = from * carry + digit;
+      if (
+        !Number.isSafeInteger(digitBase) ||
+        (from * carry) / from !== carry ||
+        digitBase - digit !== from * carry
+      ) {
+        throw new Error('convertRadix: carry overflow');
+      }
+      carry = digitBase % to;
+      digits[i] = Math.floor(digitBase / to);
+      if (!Number.isSafeInteger(digits[i]) || digits[i] * to + carry !== digitBase)
+        throw new Error('convertRadix: carry overflow');
       if (!done) continue;
       else if (!digits[i]) pos = i;
       else done = false;
@@ -134,24 +156,39 @@ function convertRadix(data: number[], from: number, to: number) {
   return res.reverse();
 }
 
+const gcd = (a: number, b: number): number => (!b ? a : gcd(b, a % b));
+const radix2carry = (from: number, to: number) => from + (to - gcd(from, to));
+// BigInt is 5x slower
 function convertRadix2(data: number[], from: number, to: number, padding: boolean): number[] {
+  if (!Array.isArray(data)) throw new Error('convertRadix2: data should be array');
+  if (from <= 0 || from > 32) throw new Error(`convertRadix2: wrong from=${from}`);
+  if (to <= 0 || to > 32) throw new Error(`convertRadix2: wrong to=${to}`);
+  if (radix2carry(from, to) > 32) {
+    throw new Error(
+      `convertRadix2: carry overflow from=${from} to=${to} carryBits=${radix2carry(from, to)}`
+    );
+  }
   let carry = 0;
   let pos = 0; // bitwise position in current element
   const mask = 2 ** to - 1;
   const res: number[] = [];
   for (const n of data) {
+    if (n >= 2 ** from) throw new Error(`convertRadix2: invalid data word=${n} from=${from}`);
     carry = (carry << from) | n;
+    if (pos + from > 32) throw new Error(`convertRadix2: carry overflow pos=${pos} from=${from}`);
     pos += from;
-    for (; pos >= to; pos -= to) res.push((carry >> (pos - to)) & mask);
+    for (; pos >= to; pos -= to) res.push(((carry >> (pos - to)) & mask) >>> 0);
+    carry &= 2 ** pos - 1; // clean carry, otherwise it will cause overflow
   }
   carry = (carry << (to - pos)) & mask;
   if (!padding && pos >= from) throw new Error('Excess padding');
   if (!padding && carry) throw new Error(`Non-zero padding: ${carry}`);
-  if (padding && pos > 0) res.push(carry);
+  if (padding && pos > 0) res.push(carry >>> 0);
   return res;
 }
 
 function radix(num: number): Coder<Uint8Array, number[]> {
+  assertNumber(num);
   return {
     encode: (bytes: Uint8Array) => {
       if (!(bytes instanceof Uint8Array))
@@ -169,6 +206,10 @@ function radix(num: number): Coder<Uint8Array, number[]> {
 // If both bases are power of same number (like `2**8 <-> 2**64`),
 // there is a linear algorithm. For now we have implementation for power-of-two bases only
 function radix2(bits: number, revPadding = false): Coder<Uint8Array, number[]> {
+  assertNumber(bits);
+  if (bits <= 0 || bits > 32) throw new Error('radix2: bits should be in (0..32]');
+  if (radix2carry(8, bits) > 32 || radix2carry(bits, 8) > 32)
+    throw new Error('radix2: carry overflow');
   return {
     encode: (bytes: Uint8Array) => {
       if (!(bytes instanceof Uint8Array))
@@ -185,6 +226,7 @@ function radix2(bits: number, revPadding = false): Coder<Uint8Array, number[]> {
 
 type ArgumentTypes<F extends Function> = F extends (...args: infer A) => any ? A : never;
 function unsafeWrapper<T extends (...args: any) => any>(fn: T) {
+  if (typeof fn !== 'function') throw new Error('unsafeWrapper fn should be function');
   return function (...args: ArgumentTypes<T>): ReturnType<T> | undefined {
     try {
       return fn.apply(null, args);
@@ -196,6 +238,8 @@ function checksum(
   len: number,
   fn: (data: Uint8Array) => Uint8Array
 ): Coder<Uint8Array, Uint8Array> {
+  assertNumber(len);
+  if (typeof fn !== 'function') throw new Error('checksum fn should be function');
   return {
     encode(data: Uint8Array) {
       if (!(data instanceof Uint8Array))
@@ -218,7 +262,7 @@ function checksum(
     },
   };
 }
-export const utils = { alphabet, chain, checksum, radix2 };
+export const utils = { alphabet, chain, checksum, radix, radix2 };
 
 // RFC 4648 aka RFC 3548
 // ---------------------
@@ -268,28 +312,31 @@ export const base58xrp: BytesCoder = genBase58(
   'rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz'
 );
 
-// xmr ver is done in 8-byte blocks.
-// This gives us eight full-sized blocks and one 5-byte block.
-// Eight bytes converts to 11 or less Base58 characters;
-// if a particular block converts to <11 characters,
-// the conversion pads it with "1"s (1 is 0 in Base58).
-// Likewise, the final 5-byte block can convert to 7 or less Base58 digits;
-// the conversion will ensure the result is 7 digits. Due to the conditional padding,
-// the 69-byte string will always convert to 95 Base58 characters (8 * 11 + 7).
-// Significantly reduces quadratic complexity of base58
+// xmr ver is done in 8-byte blocks (which equals 11 chars in decoding). Last (non-full) block padded with '1' to size in XMR_BLOCK_LEN.
+// Block encoding significantly reduces quadratic complexity of base58.
+
+// Data len (index) -> encoded block len
+const XMR_BLOCK_LEN = [0, 2, 3, 5, 6, 7, 9, 10, 11];
 export const base58xmr: BytesCoder = {
   encode(data: Uint8Array) {
     let res = '';
     for (let i = 0; i < data.length; i += 8) {
-      const slice = data.subarray(i, i + 8);
-      res += base58.encode(slice).padStart(slice.length === 8 ? 11 : 7, '1');
+      const block = data.subarray(i, i + 8);
+      res += base58.encode(block).padStart(XMR_BLOCK_LEN[block.length], '1');
     }
     return res;
   },
   decode(str: string) {
     let res: number[] = [];
-    for (let i = 0; i < str.length; i += 11)
-      res = res.concat(Array.from(base58.decode(str.slice(i, i + 11))));
+    for (let i = 0; i < str.length; i += 11) {
+      const slice = str.slice(i, i + 11);
+      const blockLen = XMR_BLOCK_LEN.indexOf(slice.length);
+      const block = base58.decode(slice);
+      for (let j = 0; j < block.length - blockLen; j++) {
+        if (block[j] !== 0) throw new Error('base58xmr: wrong padding');
+      }
+      res = res.concat(Array.from(block.slice(block.length - blockLen)));
+    }
     return Uint8Array.from(res);
   },
 };
@@ -356,9 +403,9 @@ function genBech32(encoding: 'bech32' | 'bech32m') {
     limit: number | false = 90
   ): string {
     if (typeof prefix !== 'string')
-      throw new Error(`bech32.decode prefix should be string, not ${typeof prefix}`);
+      throw new Error(`bech32.encode prefix should be string, not ${typeof prefix}`);
     if (!Array.isArray(words) || (words.length && typeof words[0] !== 'number'))
-      throw new Error(`bech32.decode words should be array of numbers, not ${typeof words}`);
+      throw new Error(`bech32.encode words should be array of numbers, not ${typeof words}`);
     const actualLength = prefix.length + 7 + words.length;
     if (limit !== false && actualLength > limit)
       throw new TypeError(`Length ${actualLength} exceeds limit ${limit}`);

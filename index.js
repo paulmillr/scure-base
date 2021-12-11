@@ -1,7 +1,12 @@
 "use strict";
 /*! micro-base - MIT License (c) 2021 Paul Miller (paulmillr.com) */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.bytes = exports.stringToBytes = exports.str = exports.bytesToString = exports.hex = exports.utf8 = exports.bech32m = exports.bech32 = exports.base58check = exports.base58xmr = exports.base58xrp = exports.base58flickr = exports.base58 = exports.base64url = exports.base64 = exports.base32crockford = exports.base32hex = exports.base32 = exports.base16 = exports.utils = void 0;
+exports.bytes = exports.stringToBytes = exports.str = exports.bytesToString = exports.hex = exports.utf8 = exports.bech32m = exports.bech32 = exports.base58check = exports.base58xmr = exports.base58xrp = exports.base58flickr = exports.base58 = exports.base64url = exports.base64 = exports.base32crockford = exports.base32hex = exports.base32 = exports.base16 = exports.utils = exports.assertNumber = void 0;
+function assertNumber(n) {
+    if (!Number.isSafeInteger(n))
+        throw new Error(`Wrong integer: ${n}`);
+}
+exports.assertNumber = assertNumber;
 function chain(...args) {
     const wrap = (a, b) => (c) => a(b(c));
     const encode = Array.from(args)
@@ -16,6 +21,7 @@ function alphabet(alphabet) {
             if (!Array.isArray(digits) || (digits.length && typeof digits[0] !== 'number'))
                 throw new Error('alphabet.encode input should be an array of numbers');
             return digits.map((i) => {
+                assertNumber(i);
                 if (i < 0 || i >= alphabet.length)
                     throw new Error(`Digit index outside alphabet: ${i} (alphabet: ${alphabet.length})`);
                 return alphabet[i];
@@ -34,6 +40,8 @@ function alphabet(alphabet) {
     };
 }
 function join(separator = '') {
+    if (typeof separator !== 'string')
+        throw new Error('join separator should be string');
     return {
         encode: (from) => {
             if (!Array.isArray(from) || (from.length && typeof from[0] !== 'string'))
@@ -48,6 +56,9 @@ function join(separator = '') {
     };
 }
 function padding(bits, chr = '=') {
+    assertNumber(bits);
+    if (typeof chr !== 'string')
+        throw new Error('padding chr should be string');
     return {
         encode(data) {
             if (!Array.isArray(data) || (data.length && typeof data[0] !== 'string'))
@@ -62,9 +73,8 @@ function padding(bits, chr = '=') {
             let end = input.length;
             if ((end * bits) % 8)
                 throw new Error('Invalid padding: string should have whole number of bytes');
-            while (end > 0 && input[end - 1] === chr) {
-                end--;
-                if (!((end * bits) % 8))
+            for (; end > 0 && input[end - 1] === chr; end--) {
+                if (!(((end - 1) * bits) % 8))
                     throw new Error('Invalid padding: string has too much padding');
             }
             return input.slice(0, end);
@@ -72,9 +82,17 @@ function padding(bits, chr = '=') {
     };
 }
 function normalize(fn) {
+    if (typeof fn !== 'function')
+        throw new Error('normalize fn should be function');
     return { encode: (from) => from, decode: (to) => fn(to) };
 }
 function convertRadix(data, from, to) {
+    if (from < 2)
+        throw new Error(`convertRadix: wrong from=${from}, base cannot be less than 2`);
+    if (to < 2)
+        throw new Error(`convertRadix: wrong to=${to}, base cannot be less than 2`);
+    if (!Array.isArray(data))
+        throw new Error('convertRadix: data should be array');
     if (!data.length)
         return [];
     let pos = 0;
@@ -84,9 +102,17 @@ function convertRadix(data, from, to) {
         let carry = 0;
         let done = true;
         for (let i = pos; i < digits.length; i++) {
-            const digit = from * carry + digits[i];
-            carry = digit % to;
-            digits[i] = Math.floor(digit / to);
+            const digit = digits[i];
+            const digitBase = from * carry + digit;
+            if (!Number.isSafeInteger(digitBase) ||
+                (from * carry) / from !== carry ||
+                digitBase - digit !== from * carry) {
+                throw new Error('convertRadix: carry overflow');
+            }
+            carry = digitBase % to;
+            digits[i] = Math.floor(digitBase / to);
+            if (!Number.isSafeInteger(digits[i]) || digits[i] * to + carry !== digitBase)
+                throw new Error('convertRadix: carry overflow');
             if (!done)
                 continue;
             else if (!digits[i])
@@ -102,16 +128,32 @@ function convertRadix(data, from, to) {
         res.push(0);
     return res.reverse();
 }
+const gcd = (a, b) => (!b ? a : gcd(b, a % b));
+const radix2carry = (from, to) => from + (to - gcd(from, to));
 function convertRadix2(data, from, to, padding) {
+    if (!Array.isArray(data))
+        throw new Error('convertRadix2: data should be array');
+    if (from <= 0 || from > 32)
+        throw new Error(`convertRadix2: wrong from=${from}`);
+    if (to <= 0 || to > 32)
+        throw new Error(`convertRadix2: wrong to=${to}`);
+    if (radix2carry(from, to) > 32) {
+        throw new Error(`convertRadix2: carry overflow from=${from} to=${to} carryBits=${radix2carry(from, to)}`);
+    }
     let carry = 0;
     let pos = 0;
     const mask = 2 ** to - 1;
     const res = [];
     for (const n of data) {
+        if (n >= 2 ** from)
+            throw new Error(`convertRadix2: invalid data word=${n} from=${from}`);
         carry = (carry << from) | n;
+        if (pos + from > 32)
+            throw new Error(`convertRadix2: carry overflow pos=${pos} from=${from}`);
         pos += from;
         for (; pos >= to; pos -= to)
-            res.push((carry >> (pos - to)) & mask);
+            res.push(((carry >> (pos - to)) & mask) >>> 0);
+        carry &= 2 ** pos - 1;
     }
     carry = (carry << (to - pos)) & mask;
     if (!padding && pos >= from)
@@ -119,10 +161,11 @@ function convertRadix2(data, from, to, padding) {
     if (!padding && carry)
         throw new Error(`Non-zero padding: ${carry}`);
     if (padding && pos > 0)
-        res.push(carry);
+        res.push(carry >>> 0);
     return res;
 }
 function radix(num) {
+    assertNumber(num);
     return {
         encode: (bytes) => {
             if (!(bytes instanceof Uint8Array))
@@ -137,6 +180,11 @@ function radix(num) {
     };
 }
 function radix2(bits, revPadding = false) {
+    assertNumber(bits);
+    if (bits <= 0 || bits > 32)
+        throw new Error('radix2: bits should be in (0..32]');
+    if (radix2carry(8, bits) > 32 || radix2carry(bits, 8) > 32)
+        throw new Error('radix2: carry overflow');
     return {
         encode: (bytes) => {
             if (!(bytes instanceof Uint8Array))
@@ -151,6 +199,8 @@ function radix2(bits, revPadding = false) {
     };
 }
 function unsafeWrapper(fn) {
+    if (typeof fn !== 'function')
+        throw new Error('unsafeWrapper fn should be function');
     return function (...args) {
         try {
             return fn.apply(null, args);
@@ -159,6 +209,9 @@ function unsafeWrapper(fn) {
     };
 }
 function checksum(len, fn) {
+    assertNumber(len);
+    if (typeof fn !== 'function')
+        throw new Error('checksum fn should be function');
     return {
         encode(data) {
             if (!(data instanceof Uint8Array))
@@ -182,7 +235,7 @@ function checksum(len, fn) {
         },
     };
 }
-exports.utils = { alphabet, chain, checksum, radix2 };
+exports.utils = { alphabet, chain, checksum, radix, radix2 };
 exports.base16 = chain(radix2(4), alphabet('0123456789ABCDEF'), join(''));
 exports.base32 = chain(radix2(5), alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'), padding(5), join(''));
 exports.base32hex = chain(radix2(5), alphabet('0123456789ABCDEFGHIJKLMNOPQRSTUV'), padding(5), join(''));
@@ -193,19 +246,28 @@ const genBase58 = (abc) => chain(radix(58), alphabet(abc), join(''));
 exports.base58 = genBase58('123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz');
 exports.base58flickr = genBase58('123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ');
 exports.base58xrp = genBase58('rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz');
+const XMR_BLOCK_LEN = [0, 2, 3, 5, 6, 7, 9, 10, 11];
 exports.base58xmr = {
     encode(data) {
         let res = '';
         for (let i = 0; i < data.length; i += 8) {
-            const slice = data.subarray(i, i + 8);
-            res += exports.base58.encode(slice).padStart(slice.length === 8 ? 11 : 7, '1');
+            const block = data.subarray(i, i + 8);
+            res += exports.base58.encode(block).padStart(XMR_BLOCK_LEN[block.length], '1');
         }
         return res;
     },
     decode(str) {
         let res = [];
-        for (let i = 0; i < str.length; i += 11)
-            res = res.concat(Array.from(exports.base58.decode(str.slice(i, i + 11))));
+        for (let i = 0; i < str.length; i += 11) {
+            const slice = str.slice(i, i + 11);
+            const blockLen = XMR_BLOCK_LEN.indexOf(slice.length);
+            const block = exports.base58.decode(slice);
+            for (let j = 0; j < block.length - blockLen; j++) {
+                if (block[j] !== 0)
+                    throw new Error('base58xmr: wrong padding');
+            }
+            res = res.concat(Array.from(block.slice(block.length - blockLen)));
+        }
         return Uint8Array.from(res);
     },
 };
@@ -249,9 +311,9 @@ function genBech32(encoding) {
     const fromWordsUnsafe = unsafeWrapper(fromWords);
     function encode(prefix, words, limit = 90) {
         if (typeof prefix !== 'string')
-            throw new Error(`bech32.decode prefix should be string, not ${typeof prefix}`);
+            throw new Error(`bech32.encode prefix should be string, not ${typeof prefix}`);
         if (!Array.isArray(words) || (words.length && typeof words[0] !== 'number'))
-            throw new Error(`bech32.decode words should be array of numbers, not ${typeof words}`);
+            throw new Error(`bech32.encode words should be array of numbers, not ${typeof words}`);
         const actualLength = prefix.length + 7 + words.length;
         if (limit !== false && actualLength > limit)
             throw new TypeError(`Length ${actualLength} exceeds limit ${limit}`);

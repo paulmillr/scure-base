@@ -73,4 +73,78 @@ for (const v of B58CHK_VECTORS.invalid) {
   });
 }
 
+should('base58xmr: wrong blockLen', () => {
+  const vectors = [
+    '1',
+    'z',
+    '1111',
+    'zzzz',
+    '11111111',
+    'zzzzzzzz',
+    '123456789AB1',
+    '123456789ABz',
+    '123456789AB1111',
+    '123456789ABzzzz',
+    '123456789AB11111111',
+    '123456789ABzzzzzzzz',
+  ];
+  for (const v of vectors) assert.throws(() => base58xmr.decode(v));
+});
+
+should('base58xmr: wrong base', () => {
+  const vectors = [
+    '5R',
+    'zz',
+    'LUw',
+    'zzz',
+    '2UzHM',
+    'zzzzz',
+    '7YXq9H',
+    'zzzzzz',
+    'VtB5VXd',
+    'zzzzzzz',
+    '3CUsUpv9u',
+    'zzzzzzzzz',
+    'Ahg1opVcGX',
+    'zzzzzzzzzz',
+    'jpXCZedGfVR',
+    'zzzzzzzzzzz',
+    '123456789AB5R',
+    '123456789ABzz',
+    '123456789ABLUw',
+    '123456789ABzzz',
+    '123456789AB2UzHM',
+    '123456789ABzzzzz',
+    '123456789AB7YXq9H',
+    '123456789ABzzzzzz',
+    '123456789ABVtB5VXd',
+    '123456789ABzzzzzzz',
+    '123456789AB3CUsUpv9u',
+    '123456789ABzzzzzzzzz',
+    '123456789ABAhg1opVcGX',
+    '123456789ABzzzzzzzzzz',
+    '123456789ABjpXCZedGfVR',
+    '123456789ABzzzzzzzzzzz',
+    'zzzzzzzzzzz11',
+  ];
+  for (const v of vectors) assert.throws(() => base58xmr.decode(v));
+});
+
+should('base58xmr: wrong chars', () => {
+  const vectors = [
+    '10',
+    '11I',
+    '11O11',
+    '11l111',
+    '11_11111111',
+    '1101111111111',
+    '11I11111111111111',
+    '11O1111111111111111111',
+    '1111111111110',
+    '111111111111l1111',
+    '111111111111_111111111',
+  ];
+  for (const v of vectors) assert.throws(() => base58xmr.decode(v));
+});
+
 if (require.main === module) should.run();

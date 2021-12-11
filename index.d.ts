@@ -1,4 +1,5 @@
 /*! micro-base - MIT License (c) 2021 Paul Miller (paulmillr.com) */
+export declare function assertNumber(n: number): void;
 export interface Coder<F, T> {
     encode(from: F): T;
     decode(to: T): F;
@@ -19,12 +20,14 @@ declare type AsChain<C extends Chain, Rest = Tail<C>> = {
 declare function chain<T extends Chain & AsChain<T>>(...args: T): Coder<Input<First<T>>, Output<Last<T>>>;
 declare type Alphabet = string[] | string;
 declare function alphabet(alphabet: Alphabet): Coder<number[], string[]>;
+declare function radix(num: number): Coder<Uint8Array, number[]>;
 declare function radix2(bits: number, revPadding?: boolean): Coder<Uint8Array, number[]>;
 declare function checksum(len: number, fn: (data: Uint8Array) => Uint8Array): Coder<Uint8Array, Uint8Array>;
 export declare const utils: {
     alphabet: typeof alphabet;
     chain: typeof chain;
     checksum: typeof checksum;
+    radix: typeof radix;
     radix2: typeof radix2;
 };
 export declare const base16: BytesCoder;
