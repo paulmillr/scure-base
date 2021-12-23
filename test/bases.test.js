@@ -101,6 +101,8 @@ should('utils: radix2', () => {
   assert.throws(() => t(30)); // 36 bits
   assert.throws(() => t(31)); // 38 bits
   t(32); // ok
+  // true is not a number
+  assert.throws(() => utils.radix2(4).decode([1, true, 1, 1]));
 });
 
 should('utils: radix', () => {
@@ -127,6 +129,25 @@ should('utils: radix', () => {
   t(35195299949887);
   assert.throws(() => t(35195299949887 + 1));
   for (let i = 46; i < 53; i++) assert.throws(() => t(2 ** i));
+  // true is not a number
+  assert.throws(() => utils.radix(2 ** 4).decode([1, true, 1, 1]));
+});
+
+should('utils: alphabet', () => {
+  const a = utils.alphabet('12345');
+  assert.throws(() => a.encode([1, 2, true, 3]));
+  assert.throws(() => a.decode(['1', 2, true]));
+  assert.throws(() => a.decode(['1', 2]));
+});
+
+should('utils: join', () => {
+  assert.throws(() => utils.join('1').encode(['1', 1, true]));
+});
+
+should('utils: padding', () => {
+  const coder = utils.padding(4, '=');
+  assert.throws(() => coder.encode(['1', 1, true]));
+  assert.throws(() => coder.decode(['1', 1, true, '=']));
 });
 
 module.exports = { CODERS };

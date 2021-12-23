@@ -64,6 +64,8 @@ function alphabet(alphabet: Alphabet): Coder<number[], string[]> {
       if (!Array.isArray(input) || (input.length && typeof input[0] !== 'string'))
         throw new Error('alphabet.decode input should be array of strings');
       return input.map((letter) => {
+        if (typeof letter !== 'string')
+          throw new Error(`alphabet.decode: not string element=${letter}`);
         const index = alphabet.indexOf(letter);
         if (index === -1) throw new Error(`Unknown letter: "${letter}". Allowed: ${alphabet}`);
         return index;
@@ -78,6 +80,8 @@ function join(separator = ''): Coder<string[], string> {
     encode: (from) => {
       if (!Array.isArray(from) || (from.length && typeof from[0] !== 'string'))
         throw new Error('join.encode input should be array of strings');
+      for (let i of from)
+        if (typeof i !== 'string') throw new Error(`join.encode: non-string input=${i}`);
       return from.join(separator);
     },
     decode: (to) => {
@@ -95,12 +99,16 @@ function padding(bits: number, chr = '='): Coder<string[], string[]> {
     encode(data: string[]): string[] {
       if (!Array.isArray(data) || (data.length && typeof data[0] !== 'string'))
         throw new Error('padding.encode input should be array of strings');
+      for (let i of data)
+        if (typeof i !== 'string') throw new Error(`padding.encode: non-string input=${i}`);
       while ((data.length * bits) % 8) data.push(chr);
       return data;
     },
     decode(input: string[]): string[] {
       if (!Array.isArray(input) || (input.length && typeof input[0] !== 'string'))
         throw new Error('padding.encode input should be array of strings');
+      for (let i of input)
+        if (typeof i !== 'string') throw new Error(`padding.decode: non-string input=${i}`);
       let end = input.length;
       if ((end * bits) % 8)
         throw new Error('Invalid padding: string should have whole number of bytes');
@@ -128,6 +136,7 @@ function convertRadix(data: number[], from: number, to: number) {
   let pos = 0;
   const res = [];
   const digits = Array.from(data);
+  for (let d of digits) assertNumber(d);
   while (true) {
     let carry = 0;
     let done = true;
@@ -173,6 +182,7 @@ function convertRadix2(data: number[], from: number, to: number, padding: boolea
   const mask = 2 ** to - 1;
   const res: number[] = [];
   for (const n of data) {
+    assertNumber(n);
     if (n >= 2 ** from) throw new Error(`convertRadix2: invalid data word=${n} from=${from}`);
     carry = (carry << from) | n;
     if (pos + from > 32) throw new Error(`convertRadix2: carry overflow pos=${pos} from=${from}`);
@@ -262,7 +272,7 @@ function checksum(
     },
   };
 }
-export const utils = { alphabet, chain, checksum, radix, radix2 };
+export const utils = { alphabet, chain, checksum, radix, radix2, join, padding };
 
 // RFC 4648 aka RFC 3548
 // ---------------------

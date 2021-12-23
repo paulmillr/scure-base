@@ -31,6 +31,8 @@ function alphabet(alphabet) {
             if (!Array.isArray(input) || (input.length && typeof input[0] !== 'string'))
                 throw new Error('alphabet.decode input should be array of strings');
             return input.map((letter) => {
+                if (typeof letter !== 'string')
+                    throw new Error(`alphabet.decode: not string element=${letter}`);
                 const index = alphabet.indexOf(letter);
                 if (index === -1)
                     throw new Error(`Unknown letter: "${letter}". Allowed: ${alphabet}`);
@@ -46,6 +48,9 @@ function join(separator = '') {
         encode: (from) => {
             if (!Array.isArray(from) || (from.length && typeof from[0] !== 'string'))
                 throw new Error('join.encode input should be array of strings');
+            for (let i of from)
+                if (typeof i !== 'string')
+                    throw new Error(`join.encode: non-string input=${i}`);
             return from.join(separator);
         },
         decode: (to) => {
@@ -63,6 +68,9 @@ function padding(bits, chr = '=') {
         encode(data) {
             if (!Array.isArray(data) || (data.length && typeof data[0] !== 'string'))
                 throw new Error('padding.encode input should be array of strings');
+            for (let i of data)
+                if (typeof i !== 'string')
+                    throw new Error(`padding.encode: non-string input=${i}`);
             while ((data.length * bits) % 8)
                 data.push(chr);
             return data;
@@ -70,6 +78,9 @@ function padding(bits, chr = '=') {
         decode(input) {
             if (!Array.isArray(input) || (input.length && typeof input[0] !== 'string'))
                 throw new Error('padding.encode input should be array of strings');
+            for (let i of input)
+                if (typeof i !== 'string')
+                    throw new Error(`padding.decode: non-string input=${i}`);
             let end = input.length;
             if ((end * bits) % 8)
                 throw new Error('Invalid padding: string should have whole number of bytes');
@@ -98,6 +109,8 @@ function convertRadix(data, from, to) {
     let pos = 0;
     const res = [];
     const digits = Array.from(data);
+    for (let d of digits)
+        assertNumber(d);
     while (true) {
         let carry = 0;
         let done = true;
@@ -145,6 +158,7 @@ function convertRadix2(data, from, to, padding) {
     const mask = 2 ** to - 1;
     const res = [];
     for (const n of data) {
+        assertNumber(n);
         if (n >= 2 ** from)
             throw new Error(`convertRadix2: invalid data word=${n} from=${from}`);
         carry = (carry << from) | n;
@@ -235,7 +249,7 @@ function checksum(len, fn) {
         },
     };
 }
-exports.utils = { alphabet, chain, checksum, radix, radix2 };
+exports.utils = { alphabet, chain, checksum, radix, radix2, join, padding };
 exports.base16 = chain(radix2(4), alphabet('0123456789ABCDEF'), join(''));
 exports.base32 = chain(radix2(5), alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'), padding(5), join(''));
 exports.base32hex = chain(radix2(5), alphabet('0123456789ABCDEFGHIJKLMNOPQRSTUV'), padding(5), join(''));
