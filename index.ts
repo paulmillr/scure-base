@@ -136,7 +136,10 @@ function convertRadix(data: number[], from: number, to: number) {
   let pos = 0;
   const res = [];
   const digits = Array.from(data);
-  for (let d of digits) assertNumber(d);
+  digits.forEach(d => {
+    assertNumber(d);
+    if (d < 0 || d >= from) throw new Error(`Wrong integer: ${d}`);
+  });
   while (true) {
     let carry = 0;
     let done = true;
