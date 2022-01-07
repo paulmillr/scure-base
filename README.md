@@ -1,6 +1,6 @@
 # micro-base
 
-Fast and minimal implementation of bech32, base64, base58, base32 & base16.
+Audited and minimal implementation of bech32, base64, base58, base32 & base16.
 
 Written in [functional style](#design-rationale), uses chaining, has unique tests which ensure correctness.
 
