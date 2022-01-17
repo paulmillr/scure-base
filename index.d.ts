@@ -1,4 +1,4 @@
-/*! micro-base - MIT License (c) 2021 Paul Miller (paulmillr.com) */
+/*! scure-base - MIT License (c) 2022 Paul Miller (paulmillr.com) */
 export declare function assertNumber(n: number): void;
 export interface Coder<F, T> {
     encode(from: F): T;

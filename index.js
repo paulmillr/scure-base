@@ -1,5 +1,5 @@
 "use strict";
-/*! micro-base - MIT License (c) 2021 Paul Miller (paulmillr.com) */
+/*! scure-base - MIT License (c) 2022 Paul Miller (paulmillr.com) */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.bytes = exports.stringToBytes = exports.str = exports.bytesToString = exports.hex = exports.utf8 = exports.bech32m = exports.bech32 = exports.base58check = exports.base58xmr = exports.base58xrp = exports.base58flickr = exports.base58 = exports.base64url = exports.base64 = exports.base32crockford = exports.base32hex = exports.base32 = exports.base16 = exports.utils = exports.assertNumber = void 0;
 function assertNumber(n) {
