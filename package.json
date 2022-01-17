@@ -1,7 +1,7 @@
 {
-  "name": "micro-base",
+  "name": "@scure/base",
   "version": "0.10.2",
-  "description": "Audited and minimal implementation of bech32, base64, base58, base32 & base16",
+  "description": "Secure, audited & 0-dep implementation of bech32, base64, base58, base32 & base16",
   "main": "index.js",
   "files": ["index.js", "index.d.ts"],
   "types": "index.d.ts",
@@ -13,10 +13,10 @@
   },
   "author": "Paul Miller (https://paulmillr.com)",
   "license": "MIT",
-  "homepage": "https://github.com/paulmillr/micro-base",
+  "homepage": "https://github.com/paulmillr/scure-base",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/paulmillr/micro-base.git"
+    "url": "git+https://github.com/paulmillr/scure-base.git"
   },
   "devDependencies": {
     "micro-should": "^0.2.0",

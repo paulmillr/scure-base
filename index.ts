@@ -1,4 +1,4 @@
-/*! micro-base - MIT License (c) 2021 Paul Miller (paulmillr.com) */
+/*! scure-base - MIT License (c) 2022 Paul Miller (paulmillr.com) */
 
 // Utilities
 export function assertNumber(n: number) {

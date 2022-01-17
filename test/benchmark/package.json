@@ -1,7 +1,7 @@
 {
-    "name": "micro-base-benchmark",
+    "name": "scure-base-benchmark",
     "version": "0.0.1",
-    "description": "Benchmark suite for micro-case",
+    "description": "Benchmark suite for scure-base",
     "main": "./index.js",
     "scripts": {
         "bench": "node ./index.js"
