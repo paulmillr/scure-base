@@ -1,6 +1,6 @@
 {
   "name": "@scure/base",
-  "version": "0.10.2",
+  "version": "1.0.0-rc1",
   "description": "Secure, audited & 0-dep implementation of bech32, base64, base58, base32 & base16",
   "main": "index.js",
   "files": ["index.js", "index.d.ts"],
