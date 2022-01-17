@@ -27,6 +27,10 @@ The library has been audited by Cure53 on Jan 5, 2022. Check out the audit [PDF]
 
 > npm install @scure/base
 
+Or
+
+> yarn add @scure/base
+
 ```js
 const {base16, base32, base64, base58} = require('@scure/base');
 // Flavors
