@@ -40,5 +40,11 @@
     "encoder",
     "base-x",
     "base"
+  ],
+  "funding": [
+    {
+      "type": "individual",
+      "url": "https://paulmillr.com/funding/"
+    }
   ]
 }
