@@ -1,6 +1,6 @@
 # scure-base
 
-Secure, audited and minimal implementation of bech32, base64, base58, base32 & base16.
+Secure, audited and 0-dep implementation of bech32, base64, base58, base32 & base16.
 
 Written in [functional style](#design-rationale), uses chaining, has unique tests which ensure correctness.
 
@@ -32,9 +32,9 @@ Or
 > yarn add @scure/base
 
 ```js
-const {base16, base32, base64, base58} = require('@scure/base');
+const { base16, base32, base64, base58 } = require('@scure/base');
 // Flavors
-const {base58xmr, base58xrp, base32hex, base32crockford, base64url} = require('@scure/base');
+const { base58xmr, base58xrp, base32hex, base32crockford, base64url } = require('@scure/base');
 
 const data = Uint8Array.from([1, 2, 3]);
 base64.decode(base64.encode(data));
