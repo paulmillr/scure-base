@@ -10,7 +10,7 @@ Matches following specs:
 - Base16, Base32, Base32Hex, Base64, Base64Url: [RFC 4648](https://datatracker.ietf.org/doc/html/rfc4648) (aka RFC 3548)
 - [Base58](https://www.ietf.org/archive/id/draft-msporny-base58-03.txt), [Base58check](https://en.bitcoin.it/wiki/Base58Check_encoding), [Base32 Crockford](https://www.crockford.com/base32.html)
 
-The library has been audited by Cure53 on Jan 5, 2022. Check out the audit [PDF](./audit/2022-01-05-cure53-audit-nbl2.pdf) & [URL](https://cure53.de/pentest-report_hashing-libs.pdf). Before the audit, it was called `micro-base`.
+The library has been audited by Cure53 on Jan 5, 2022. Check out the audit [PDF](./audit/2022-01-05-cure53-audit-nbl2.pdf), [URL](https://cure53.de/pentest-report_hashing-libs.pdf) & [changes since audit](https://github.com/paulmillr/scure-base/compare/1.0.0..main). Before the audit, it was called `micro-base`.
 
 ### This library belongs to *scure*
 
