@@ -439,7 +439,8 @@ function genBech32(encoding: 'bech32' | 'bech32m') {
     const sepIndex = str.lastIndexOf('1');
     if (sepIndex === 0 || sepIndex === -1)
       throw new Error(`Letter "1" must be present between prefix and data only`);
-    const [prefix, _words] = [str.slice(0, sepIndex), str.slice(sepIndex + 1)];
+    const prefix = str.slice(0, sepIndex);
+    const _words = str.slice(sepIndex + 1);
     if (_words.length < 6) throw new Error('Data must be at least 6 characters long');
     const words = BECH_ALPHABET.decode(_words).slice(0, -6);
     const sum = bechChecksum(prefix, words, ENCODING_CONST);
@@ -459,6 +460,9 @@ function genBech32(encoding: 'bech32' | 'bech32m') {
 
 export const bech32 = genBech32('bech32');
 export const bech32m = genBech32('bech32m');
+
+declare const TextEncoder: any;
+declare const TextDecoder: any;
 
 export const utf8: BytesCoder = {
   encode: (data) => new TextDecoder().decode(data),
