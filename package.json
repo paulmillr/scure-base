@@ -5,6 +5,7 @@
   "files": [
     "lib/index.js",
     "lib/esm/index.js",
+    "lib/esm/package.json",
     "lib/index.d.ts"
   ],
   "main": "lib/index.js",
