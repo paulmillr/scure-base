@@ -1,6 +1,6 @@
 # scure-base
 
-Secure, audited and 0-dep implementation of bech32, base64, base58, base32 & base16.
+Secure, [audited](#security) and 0-dep implementation of bech32, base64, base58, base32 & base16.
 
 Written in [functional style](#design-rationale), uses chaining, has unique tests which ensure correctness.
 
@@ -9,8 +9,6 @@ Matches following specs:
 - Bech32, Bech32m: [BIP173](https://en.bitcoin.it/wiki/BIP_0173), [BIP350](https://en.bitcoin.it/wiki/BIP_0350)
 - Base16, Base32, Base32Hex, Base64, Base64Url: [RFC 4648](https://datatracker.ietf.org/doc/html/rfc4648) (aka RFC 3548)
 - [Base58](https://www.ietf.org/archive/id/draft-msporny-base58-03.txt), [Base58check](https://en.bitcoin.it/wiki/Base58Check_encoding), [Base32 Crockford](https://www.crockford.com/base32.html)
-
-The library has been audited by Cure53 on Jan 5, 2022. Check out the audit [PDF](./audit/2022-01-05-cure53-audit-nbl2.pdf), [URL](https://cure53.de/pentest-report_hashing-libs.pdf) & [changes since audit](https://github.com/paulmillr/scure-base/compare/1.0.0..main). Before the audit, it was called `micro-base`.
 
 ### This library belongs to *scure*
 
@@ -45,19 +43,19 @@ base16.encode(data);
 base32hex.encode(data);
 
 // bech32
-const {bech32, bech32m} = require('@scure/base');
+const { bech32, bech32m } = require('@scure/base');
 const words = bech32.toWords(data);
 const be = bech32.encode('prefix', words);
-const {prefix, words} = bech32.decode(be);
+const { prefix, words } = bech32.decode(be);
 bech32m.encode('prefix', words);
 
 // base58check is special-case
 // you need to pass sha256() function that returns Uint8Array
-const {base58check} = require('@scure/base');
+const { base58check } = require('@scure/base');
 base58check(sha256).encode(data);
 
 // Alternative API
-const {str, bytes} = require('@scure/base');
+const { str, bytes } = require('@scure/base');
 const encoded = str('base64', data);
 const data = bytes('base64', encoded);
 ```
@@ -134,6 +132,15 @@ constant sized input, because variable length sized input from user can cause Do
 
 On the other hand, if both bases are power of same number (like `2**8 <-> 2**64`),
 there is linear algorithm. For now we have implementation for power-of-two bases only (radix2).
+
+## Security
+
+The library has been audited by Cure53 on Jan 5, 2022. Check out the audit [PDF](./audit/2022-01-05-cure53-audit-nbl2.pdf) & [URL](https://cure53.de/pentest-report_hashing-libs.pdf). See [changes since audit](https://github.com/paulmillr/scure-base/compare/1.0.0..main).
+
+1. The library was initially developed for [js-ethereum-cryptography](https://github.com/ethereum/js-ethereum-cryptography)
+2. At commit [ae00e6d7](https://github.com/ethereum/js-ethereum-cryptography/commit/ae00e6d7d24fb3c76a1c7fe10039f6ecd120b77e), it
+  was extracted to a separate package called `micro-base`
+3. After the audit we've decided to use NPM namespace for security. Since `@micro` namespace was taken, we've renamed the package to `@scure/base`
 
 ## License
 
