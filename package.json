@@ -22,7 +22,8 @@
     "bench": "node test/benchmark/index.js",
     "build": "tsc -d && tsc -p tsconfig.esm.json",
     "lint": "prettier --check index.ts",
-    "test": "node test/index.js"
+    "test": "node test/index.js",
+    "test:deno": "deno test test/deno.ts"
   },
   "author": "Paul Miller (https://paulmillr.com)",
   "license": "MIT",
