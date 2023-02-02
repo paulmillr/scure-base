@@ -52,10 +52,10 @@ for (const c in NODE_CODERS) {
   });
 }
 
-for (let i = 0; i < vectors.length; i++) {
-  const v = vectors[i];
-  const data = Uint8Array.from(Buffer.from(v.data, 'hex'));
-  should(`${v.fn_name} (${i})`, () => {
+should('14335 vectors, base32/64 58/hex/url/xmr, bech32/m', () => {
+  for (let i = 0; i < vectors.length; i++) {
+    const v = vectors[i];
+    const data = Uint8Array.from(Buffer.from(v.data, 'hex'));
     const coder = {
       base32,
       base32hex,
@@ -72,11 +72,10 @@ for (let i = 0; i < vectors.length; i++) {
         decode: (str) => bech32m.fromWords(bech32m.decode(str, 9000).words),
       },
     };
-    assert.deepStrictEqual(coder[v.fn_name].encode(data), v.exp, 'encode');
-    assert.deepStrictEqual(coder[v.fn_name].decode(v.exp), data, 'decode');
-  });
-}
-
+    assert.deepStrictEqual(coder[v.fn_name].encode(data), v.exp, 'encode ' + i);
+    assert.deepStrictEqual(coder[v.fn_name].decode(v.exp), data, 'decode ' + i);
+  }
+});
 should('utils: radix2', () => {
   const t = (bits) => {
     const coder = utils.radix2(bits);

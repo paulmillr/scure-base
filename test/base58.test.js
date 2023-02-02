@@ -1,5 +1,5 @@
 const assert = require('assert');
-const { should } = require('micro-should');
+const { should, describe } = require('micro-should');
 const { base58, base58xmr, base58check: _base58check, base58xrp } = require('..');
 const VECTORS_2 = require('./vectors/base58.json');
 // https://github.com/bigreddmachine/MoneroPy/blob/master/tests/testdata.py (BSD license)
@@ -45,14 +45,16 @@ should('base58: vectors2', () => {
   }
 });
 
-for (let i = 0; i < XMR_VECTORS.validAddrs.length; i++) {
-  should(`base58: xmr vectors (${i})`, () => {
-    const decAddr = XMR_VECTORS.decodedAddrs[i];
-    const validAddr = XMR_VECTORS.validAddrs[i];
-    assert.deepStrictEqual(base58xmr.encode(hexToArray(decAddr)), validAddr, 'encode');
-    assert.deepStrictEqual(base58xmr.decode(validAddr), hexToArray(decAddr), 'decode');
-  });
-}
+describe('base58: xmr vectors', () => {
+  for (let i = 0; i < XMR_VECTORS.validAddrs.length; i++) {
+    should(`${i}`, () => {
+      const decAddr = XMR_VECTORS.decodedAddrs[i];
+      const validAddr = XMR_VECTORS.validAddrs[i];
+      assert.deepStrictEqual(base58xmr.encode(hexToArray(decAddr)), validAddr, 'encode');
+      assert.deepStrictEqual(base58xmr.decode(validAddr), hexToArray(decAddr), 'decode');
+    });
+  }
+});
 
 const base58check = _base58check((buf) =>
   Uint8Array.from(require('crypto').createHash('sha256').update(buf).digest())
