@@ -31,9 +31,9 @@ Or
 > yarn add @scure/base
 
 ```js
-const { base16, base32, base64, base58 } = require('@scure/base');
+import { base16, base32, base64, base58 } from '@scure/base';
 // Flavors
-const { base58xmr, base58xrp, base32hex, base32crockford, base64url } = require('@scure/base');
+import { base58xmr, base58xrp, base32hex, base32crockford, base64url, base64urlnopad } from '@scure/base';
 
 const data = Uint8Array.from([1, 2, 3]);
 base64.decode(base64.encode(data));
@@ -43,20 +43,27 @@ base32.encode(data);
 base16.encode(data);
 base32hex.encode(data);
 
-// bech32
-const { bech32, bech32m } = require('@scure/base');
+Bech32:
+
+```js
+import { bech32, bech32m } from '@scure/base';
 const words = bech32.toWords(data);
 const be = bech32.encode('prefix', words);
 const { prefix, words } = bech32.decode(be);
 bech32m.encode('prefix', words);
+```
 
-// base58check is special-case
-// you need to pass sha256() function that returns Uint8Array
-const { base58check } = require('@scure/base');
+base58check is a special case: you need to pass `sha256()` function:
+
+```js
+import { base58check } from '@scure/base';
 base58check(sha256).encode(data);
+```
 
-// Alternative API
-const { str, bytes } = require('@scure/base');
+Alternative API:
+
+```js
+import { str, bytes } from '@scure/base';
 const encoded = str('base64', data);
 const data = bytes('base64', encoded);
 ```

@@ -310,6 +310,11 @@ export const base64url: BytesCoder = chain(
   padding(6),
   join('')
 );
+export const base64urlnopad: BytesCoder = chain(
+  radix2(6),
+  alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'),
+  join('')
+);
 
 // base58 code
 // -----------
