@@ -6,8 +6,8 @@ Written in [functional style](#design-rationale), uses chaining, has unique test
 
 Matches following specs:
 
-- Bech32, Bech32m: [BIP173](https://en.bitcoin.it/wiki/BIP_0173), [BIP350](https://en.bitcoin.it/wiki/BIP_0350)
-- Base16, Base32, Base32Hex, Base64, Base64Url: [RFC 4648](https://datatracker.ietf.org/doc/html/rfc4648) (aka RFC 3548)
+- [BIP173](https://en.bitcoin.it/wiki/BIP_0173), [BIP350](https://en.bitcoin.it/wiki/BIP_0350) for bech32 / bech32m
+- [RFC 4648](https://datatracker.ietf.org/doc/html/rfc4648) (aka RFC 3548) for Base16, Base32, Base32Hex, Base64, Base64Url
 - [Base58](https://www.ietf.org/archive/id/draft-msporny-base58-03.txt), [Base58check](https://en.bitcoin.it/wiki/Base58Check_encoding), [Base32 Crockford](https://www.crockford.com/base32.html)
 
 ### This library belongs to *scure*
@@ -38,10 +38,15 @@ import { base58xmr, base58xrp, base32hex, base32crockford, base64url, base64urln
 const data = Uint8Array.from([1, 2, 3]);
 base64.decode(base64.encode(data));
 
+// Convert utf8 string to Uint8Array
+const data2 = new TextEncoder().encode('hello');
+base58.encode(data2);
+
 // Everything has the same API except for bech32 and base58check
 base32.encode(data);
 base16.encode(data);
 base32hex.encode(data);
+```
 
 Bech32:
 
