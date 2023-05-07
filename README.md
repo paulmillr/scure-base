@@ -2,13 +2,13 @@
 
 Secure, [audited](#security) and 0-dep implementation of bech32, base64, base58, base32 & base16.
 
-Written in [functional style](#design-rationale), uses chaining, has unique tests which ensure correctness.
-
-Matches following specs:
-
-- [BIP173](https://en.bitcoin.it/wiki/BIP_0173), [BIP350](https://en.bitcoin.it/wiki/BIP_0350) for bech32 / bech32m
-- [RFC 4648](https://datatracker.ietf.org/doc/html/rfc4648) (aka RFC 3548) for Base16, Base32, Base32Hex, Base64, Base64Url
-- [Base58](https://www.ietf.org/archive/id/draft-msporny-base58-03.txt), [Base58check](https://en.bitcoin.it/wiki/Base58Check_encoding), [Base32 Crockford](https://www.crockford.com/base32.html)
+- Supports ESM and common.js
+- Written in [functional style](#design-rationale), uses chaining
+- Has unique tests which ensure correctness
+- Matches specs
+    - [BIP173](https://en.bitcoin.it/wiki/BIP_0173), [BIP350](https://en.bitcoin.it/wiki/BIP_0350) for bech32 / bech32m
+    - [RFC 4648](https://datatracker.ietf.org/doc/html/rfc4648) (aka RFC 3548) for Base16, Base32, Base32Hex, Base64, Base64Url
+    - [Base58](https://www.ietf.org/archive/id/draft-msporny-base58-03.txt), [Base58check](https://en.bitcoin.it/wiki/Base58Check_encoding), [Base32 Crockford](https://www.crockford.com/base32.html)
 
 ### This library belongs to *scure*
 
