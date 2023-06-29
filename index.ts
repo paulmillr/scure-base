@@ -279,54 +279,57 @@ export const utils = { alphabet, chain, checksum, radix, radix2, join, padding }
 
 // RFC 4648 aka RFC 3548
 // ---------------------
-export const base16: BytesCoder = chain(radix2(4), alphabet('0123456789ABCDEF'), join(''));
-export const base32: BytesCoder = chain(
-  radix2(5),
-  alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'),
-  padding(5),
-  join('')
-);
-export const base32hex: BytesCoder = chain(
-  radix2(5),
-  alphabet('0123456789ABCDEFGHIJKLMNOPQRSTUV'),
-  padding(5),
-  join('')
-);
-export const base32crockford: BytesCoder = chain(
-  radix2(5),
-  alphabet('0123456789ABCDEFGHJKMNPQRSTVWXYZ'),
-  join(''),
-  normalize((s: string) => s.toUpperCase().replace(/O/g, '0').replace(/[IL]/g, '1'))
-);
-export const base64: BytesCoder = chain(
-  radix2(6),
-  alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'),
-  padding(6),
-  join('')
-);
-export const base64url: BytesCoder = chain(
-  radix2(6),
-  alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'),
-  padding(6),
-  join('')
-);
-export const base64urlnopad: BytesCoder = chain(
-  radix2(6),
-  alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'),
-  join('')
-);
+export const base16: BytesCoder = /* @__PURE__ */ (() =>
+  chain(radix2(4), alphabet('0123456789ABCDEF'), join('')))();
+
+export const base32: BytesCoder = /* @__PURE__ */ (() =>
+  chain(radix2(5), alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'), padding(5), join('')))();
+
+export const base32hex: BytesCoder = /* @__PURE__ */ (() =>
+  chain(radix2(5), alphabet('0123456789ABCDEFGHIJKLMNOPQRSTUV'), padding(5), join('')))();
+
+export const base32crockford: BytesCoder = /* @__PURE__ */ (() =>
+  chain(
+    radix2(5),
+    alphabet('0123456789ABCDEFGHJKMNPQRSTVWXYZ'),
+    join(''),
+    normalize((s: string) => s.toUpperCase().replace(/O/g, '0').replace(/[IL]/g, '1'))
+  ))();
+
+export const base64: BytesCoder = /* @__PURE__ */ (() =>
+  chain(
+    radix2(6),
+    alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'),
+    padding(6),
+    join('')
+  ))();
+
+export const base64url: BytesCoder = /* @__PURE__ */ (() =>
+  chain(
+    radix2(6),
+    alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'),
+    padding(6),
+    join('')
+  ))();
+
+export const base64urlnopad: BytesCoder = /* @__PURE__ */ (() =>
+  chain(
+    radix2(6),
+    alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'),
+    join('')
+  ))();
 
 // base58 code
 // -----------
 const genBase58 = (abc: string) => chain(radix(58), alphabet(abc), join(''));
 
-export const base58: BytesCoder = genBase58(
+export const base58: BytesCoder = /* @__PURE__ */ genBase58(
   '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 );
-export const base58flickr: BytesCoder = genBase58(
+export const base58flickr: BytesCoder = /* @__PURE__ */ genBase58(
   '123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ'
 );
-export const base58xrp: BytesCoder = genBase58(
+export const base58xrp: BytesCoder = /* @__PURE__ */ genBase58(
   'rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz'
 );
 
@@ -377,10 +380,8 @@ export interface Bech32DecodedWithArray {
   bytes: Uint8Array;
 }
 
-const BECH_ALPHABET: Coder<number[], string> = chain(
-  alphabet('qpzry9x8gf2tvdw0s3jn54khce6mua7l'),
-  join('')
-);
+const BECH_ALPHABET: Coder<number[], string> = /* @__PURE__ */ (() =>
+  chain(alphabet('qpzry9x8gf2tvdw0s3jn54khce6mua7l'), join('')))();
 
 const POLYMOD_GENERATORS = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
 function bech32Polymod(pre: number): number {
@@ -463,8 +464,8 @@ function genBech32(encoding: 'bech32' | 'bech32m') {
   return { encode, decode, decodeToBytes, decodeUnsafe, fromWords, fromWordsUnsafe, toWords };
 }
 
-export const bech32 = genBech32('bech32');
-export const bech32m = genBech32('bech32m');
+export const bech32 = /* @__PURE__ */ genBech32('bech32');
+export const bech32m = /* @__PURE__ */ genBech32('bech32m');
 
 declare const TextEncoder: any;
 declare const TextDecoder: any;
@@ -474,16 +475,17 @@ export const utf8: BytesCoder = {
   decode: (str) => new TextEncoder().encode(str),
 };
 
-export const hex: BytesCoder = chain(
-  radix2(4),
-  alphabet('0123456789abcdef'),
-  join(''),
-  normalize((s: string) => {
-    if (typeof s !== 'string' || s.length % 2)
-      throw new TypeError(`hex.decode: expected string, got ${typeof s} with length ${s.length}`);
-    return s.toLowerCase();
-  })
-);
+export const hex: BytesCoder = /* @__PURE__ */ (() =>
+  chain(
+    radix2(4),
+    alphabet('0123456789abcdef'),
+    join(''),
+    normalize((s: string) => {
+      if (typeof s !== 'string' || s.length % 2)
+        throw new TypeError(`hex.decode: expected string, got ${typeof s} with length ${s.length}`);
+      return s.toLowerCase();
+    })
+  ))();
 
 // prettier-ignore
 const CODERS = {
