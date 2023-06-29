@@ -7,7 +7,6 @@
     "moduleResolution": "node",
     "outDir": "lib/esm",
     "noImplicitAny": true,
-    "removeComments": true,
     "preserveConstEnums": true,
     "baseUrl": ".",
   },
