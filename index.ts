@@ -367,12 +367,12 @@ export const base58check = (sha256: (data: Uint8Array) => Uint8Array): BytesCode
 
 // Bech32 code
 // -----------
-export interface Bech32Decoded {
-  prefix: string;
+export interface Bech32Decoded<Prefix extends string = string> {
+  prefix: Prefix;
   words: number[];
 }
-export interface Bech32DecodedWithArray {
-  prefix: string;
+export interface Bech32DecodedWithArray<Prefix extends string = string> {
+  prefix: Prefix;
   words: number[];
   bytes: Uint8Array;
 }
@@ -415,11 +415,11 @@ function genBech32(encoding: 'bech32' | 'bech32m') {
   const toWords = _words.encode;
   const fromWordsUnsafe = unsafeWrapper(fromWords);
 
-  function encode(
-    prefix: string,
+  function encode<Prefix extends string>(
+    prefix: Prefix,
     words: number[] | Uint8Array,
     limit: number | false = 90
-  ): string {
+  ): `${Lowercase<Prefix>}1${string}` {
     if (typeof prefix !== 'string')
       throw new Error(`bech32.encode prefix should be string, not ${typeof prefix}`);
     if (!Array.isArray(words) || (words.length && typeof words[0] !== 'number'))
@@ -427,10 +427,11 @@ function genBech32(encoding: 'bech32' | 'bech32m') {
     const actualLength = prefix.length + 7 + words.length;
     if (limit !== false && actualLength > limit)
       throw new TypeError(`Length ${actualLength} exceeds limit ${limit}`);
-    prefix = prefix.toLowerCase();
-    return `${prefix}1${BECH_ALPHABET.encode(words)}${bechChecksum(prefix, words, ENCODING_CONST)}`;
+    return `${prefix.toLowerCase()}1${BECH_ALPHABET.encode(words)}${bechChecksum(prefix, words, ENCODING_CONST)}` as `${Lowercase<Prefix>}1${string}`;
   }
 
+  function decode<Prefix extends string>(str: `${Prefix}1${string}`, limit: number | false): Bech32Decoded<Prefix>
+  function decode(str: string, limit: number | false): Bech32Decoded
   function decode(str: string, limit: number | false = 90): Bech32Decoded {
     if (typeof str !== 'string')
       throw new Error(`bech32.decode input should be string, not ${typeof str}`);
