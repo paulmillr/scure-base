@@ -427,7 +427,8 @@ function genBech32(encoding: 'bech32' | 'bech32m') {
     const actualLength = prefix.length + 7 + words.length;
     if (limit !== false && actualLength > limit)
       throw new TypeError(`Length ${actualLength} exceeds limit ${limit}`);
-    return `${prefix.toLowerCase()}1${BECH_ALPHABET.encode(words)}${bechChecksum(prefix, words, ENCODING_CONST)}` as `${Lowercase<Prefix>}1${string}`;
+    const lowered = prefix.toLowerCase();
+    return `${lowered}1${BECH_ALPHABET.encode(words)}${bechChecksum(lowered, words, ENCODING_CONST)}` as `${Lowercase<Prefix>}1${string}`;
   }
 
   function decode<Prefix extends string>(str: `${Prefix}1${string}`, limit: number | false): Bech32Decoded<Prefix>
