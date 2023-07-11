@@ -496,7 +496,7 @@ const CODERS = {
   utf8, hex, base16, base32, base64, base64url, base58, base58xmr
 };
 type CoderType = keyof typeof CODERS;
-const coderTypeError = `Invalid encoding type. Available types: ${Object.keys(CODERS).join(', ')}`;
+const coderTypeError = 'Invalid encoding type. Available types: utf8, hex, base16, base32, base64, base64url, base58, base58xmr';
 
 export const bytesToString = (type: CoderType, bytes: Uint8Array): string => {
   if (typeof type !== 'string' || !CODERS.hasOwnProperty(type)) throw new TypeError(coderTypeError);
