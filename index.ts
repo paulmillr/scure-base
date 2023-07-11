@@ -428,11 +428,15 @@ function genBech32(encoding: 'bech32' | 'bech32m') {
     if (limit !== false && actualLength > limit)
       throw new TypeError(`Length ${actualLength} exceeds limit ${limit}`);
     const lowered = prefix.toLowerCase();
-    return `${lowered}1${BECH_ALPHABET.encode(words)}${bechChecksum(lowered, words, ENCODING_CONST)}` as `${Lowercase<Prefix>}1${string}`;
+    const sum = bechChecksum(lowered, words, ENCODING_CONST);
+    return `${lowered}1${BECH_ALPHABET.encode(words)}${sum}` as `${Lowercase<Prefix>}1${string}`;
   }
 
-  function decode<Prefix extends string>(str: `${Prefix}1${string}`, limit: number | false): Bech32Decoded<Prefix>
-  function decode(str: string, limit: number | false): Bech32Decoded
+  function decode<Prefix extends string>(
+    str: `${Prefix}1${string}`,
+    limit: number | false
+  ): Bech32Decoded<Prefix>;
+  function decode(str: string, limit: number | false): Bech32Decoded;
   function decode(str: string, limit: number | false = 90): Bech32Decoded {
     if (typeof str !== 'string')
       throw new Error(`bech32.decode input should be string, not ${typeof str}`);
