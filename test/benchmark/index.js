@@ -12,24 +12,24 @@ const CODERS = {
     encode: {
       node: (buf) => Buffer.from(buf).toString('hex'),
       stable: (buf) => stableHex.encode(buf),
-      noble: (buf) => hex.encode(buf),
+      scure: (buf) => hex.encode(buf),
     },
     decode: {
       node: (str) => Buffer.from(str, 'hex'),
       stable: (str) => stableHex.decode(str),
-      noble: (str) => hex.decode(str),
+      scure: (str) => hex.decode(str),
     },
   },
   Base64: {
     encode: {
       node: (buf) => Buffer.from(buf).toString('base64'),
       stable: (buf) => stableBase64.encode(buf),
-      noble: (buf) => base64.encode(buf),
+      scure: (buf) => base64.encode(buf),
     },
     decode: {
       node: (str) => Buffer.from(str, 'base64'),
       stable: (str) => stableBase64.decode(str),
-      noble: (str) => base64.decode(str),
+      scure: (str) => base64.decode(str),
     },
   },
   Base58: {
@@ -37,13 +37,13 @@ const CODERS = {
       nodeBase58: (buf) => nodeBase58.encode(buf),
       bs58: (buf) => bs58.encode(buf),
       micro: (buf) => microBase58.encode(buf),
-      noble: (buf) => base58.encode(buf),
+      scure: (buf) => base58.encode(buf),
     },
     decode: {
       nodeBase58: (str) => nodeBase58.decode(str),
       bs58: (str) => bs58.decode(str),
       micro: (str) => microBase58.decode(str),
-      noble: (str) => base58.decode(str),
+      scure: (str) => base58.decode(str),
     },
   },
 };
@@ -66,7 +66,7 @@ const main = () =>
         for (const [lib, fn] of Object.entries(libs.encode))
           await mark(`${k} (encode) ${size} ${lib}`, samples, () => fn(buf));
         console.log();
-        const str = libs.encode.noble(buf);
+        const str = libs.encode.scure(buf);
         for (const [lib, fn] of Object.entries(libs.decode))
           await mark(`${k} (decode) ${size} ${lib}`, samples, () => fn(str));
         console.log();
