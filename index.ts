@@ -190,7 +190,8 @@ function convertRadix(data: number[], from: number, to: number) {
 }
 
 const gcd = /* @__NO_SIDE_EFFECTS__ */ (a: number, b: number): number => (!b ? a : gcd(b, a % b));
-const radix2carry = /*@__NO_SIDE_EFFECTS__ */ (from: number, to: number) => from + (to - gcd(from, to));
+const radix2carry = /*@__NO_SIDE_EFFECTS__ */ (from: number, to: number) =>
+  from + (to - gcd(from, to));
 /**
  * Implemented with numbers, because BigInt is 5x slower
  * @__NO_SIDE_EFFECTS__
@@ -315,7 +316,11 @@ export const utils = { alphabet, chain, checksum, radix, radix2, join, padding }
 
 // RFC 4648 aka RFC 3548
 // ---------------------
-export const base16: BytesCoder = /* @__PURE__ */ chain(radix2(4), alphabet('0123456789ABCDEF'), join(''));
+export const base16: BytesCoder = /* @__PURE__ */ chain(
+  radix2(4),
+  alphabet('0123456789ABCDEF'),
+  join('')
+);
 export const base32: BytesCoder = /* @__PURE__ */ chain(
   radix2(5),
   alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'),
