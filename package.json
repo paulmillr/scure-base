@@ -1,12 +1,14 @@
 {
   "name": "@scure/base",
   "version": "1.1.1",
-  "description": "Secure, audited & 0-dep implementation of bech32, base64, base58, base32 & base16",
+  "description": "Secure, audited & 0-dep implementation of base64, bech32, base58, base32 & base16",
   "files": [
     "lib/index.js",
     "lib/esm/index.js",
     "lib/esm/package.json",
-    "lib/index.d.ts"
+    "lib/index.d.ts",
+    "lib/index.d.ts.map",
+    "index.ts"
   ],
   "main": "lib/index.js",
   "module": "lib/esm/index.js",
@@ -29,7 +31,7 @@
   "sideEffects": false,
   "author": "Paul Miller (https://paulmillr.com)",
   "license": "MIT",
-  "homepage": "https://github.com/paulmillr/scure-base",
+  "homepage": "https://paulmillr.com/noble/#scure",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/paulmillr/scure-base.git"
