@@ -1,6 +1,9 @@
 /*! scure-base - MIT License (c) 2022 Paul Miller (paulmillr.com) */
 
 // Utilities
+/**
+ * @__NO_SIDE_EFFECTS__
+ */
 export function assertNumber(n: number) {
   if (!Number.isSafeInteger(n)) throw new Error(`Wrong integer: ${n}`);
 }
@@ -30,6 +33,9 @@ type AsChain<C extends Chain, Rest = Tail<C>> = {
   [K in keyof C]: Coder<Input<C[K]>, Input<K extends keyof Rest ? Rest[K] : any>>;
 };
 
+/**
+ * @__NO_SIDE_EFFECTS__
+ */
 function chain<T extends Chain & AsChain<T>>(...args: T): Coder<Input<First<T>>, Output<Last<T>>> {
   // Wrap call in closure so JIT can inline calls
   const wrap = (a: any, b: any) => (c: any) => a(b(c));
@@ -47,7 +53,10 @@ function chain<T extends Chain & AsChain<T>>(...args: T): Coder<Input<First<T>>,
 
 type Alphabet = string[] | string;
 
-// Encodes integer radix representation to array of strings using alphabet and back
+/**
+ * Encodes integer radix representation to array of strings using alphabet and back
+ * @__NO_SIDE_EFFECTS__
+ */
 function alphabet(alphabet: Alphabet): Coder<number[], string[]> {
   return {
     encode: (digits: number[]) => {
@@ -74,6 +83,9 @@ function alphabet(alphabet: Alphabet): Coder<number[], string[]> {
   };
 }
 
+/**
+ * @__NO_SIDE_EFFECTS__
+ */
 function join(separator = ''): Coder<string[], string> {
   if (typeof separator !== 'string') throw new Error('join separator should be string');
   return {
@@ -91,7 +103,10 @@ function join(separator = ''): Coder<string[], string> {
   };
 }
 
-// Pad strings array so it has integer number of bits
+/**
+ * Pad strings array so it has integer number of bits
+ * @__NO_SIDE_EFFECTS__
+ */
 function padding(bits: number, chr = '='): Coder<string[], string[]> {
   assertNumber(bits);
   if (typeof chr !== 'string') throw new Error('padding chr should be string');
@@ -121,12 +136,18 @@ function padding(bits: number, chr = '='): Coder<string[], string[]> {
   };
 }
 
+/**
+ * @__NO_SIDE_EFFECTS__
+ */
 function normalize<T>(fn: (val: T) => T): Coder<T, T> {
   if (typeof fn !== 'function') throw new Error('normalize fn should be function');
   return { encode: (from: T) => from, decode: (to: T) => fn(to) };
 }
 
-// NOTE: it has quadratic time complexity
+/**
+ * Slow: O(n^2) time complexity
+ * @__NO_SIDE_EFFECTS__
+ */
 function convertRadix(data: number[], from: number, to: number) {
   // base 1 is impossible
   if (from < 2) throw new Error(`convertRadix: wrong from=${from}, base cannot be less than 2`);
@@ -168,9 +189,12 @@ function convertRadix(data: number[], from: number, to: number) {
   return res.reverse();
 }
 
-const gcd = (a: number, b: number): number => (!b ? a : gcd(b, a % b));
-const radix2carry = (from: number, to: number) => from + (to - gcd(from, to));
-// BigInt is 5x slower
+const gcd = /* @__NO_SIDE_EFFECTS__ */ (a: number, b: number): number => (!b ? a : gcd(b, a % b));
+const radix2carry = /*@__NO_SIDE_EFFECTS__ */ (from: number, to: number) => from + (to - gcd(from, to));
+/**
+ * Implemented with numbers, because BigInt is 5x slower
+ * @__NO_SIDE_EFFECTS__
+ */
 function convertRadix2(data: number[], from: number, to: number, padding: boolean): number[] {
   if (!Array.isArray(data)) throw new Error('convertRadix2: data should be array');
   if (from <= 0 || from > 32) throw new Error(`convertRadix2: wrong from=${from}`);
@@ -200,6 +224,9 @@ function convertRadix2(data: number[], from: number, to: number, padding: boolea
   return res;
 }
 
+/**
+ * @__NO_SIDE_EFFECTS__
+ */
 function radix(num: number): Coder<Uint8Array, number[]> {
   assertNumber(num);
   return {
@@ -216,8 +243,11 @@ function radix(num: number): Coder<Uint8Array, number[]> {
   };
 }
 
-// If both bases are power of same number (like `2**8 <-> 2**64`),
-// there is a linear algorithm. For now we have implementation for power-of-two bases only
+/**
+ * If both bases are power of same number (like `2**8 <-> 2**64`),
+ * there is a linear algorithm. For now we have implementation for power-of-two bases only.
+ * @__NO_SIDE_EFFECTS__
+ */
 function radix2(bits: number, revPadding = false): Coder<Uint8Array, number[]> {
   assertNumber(bits);
   if (bits <= 0 || bits > 32) throw new Error('radix2: bits should be in (0..32]');
@@ -238,15 +268,21 @@ function radix2(bits: number, revPadding = false): Coder<Uint8Array, number[]> {
 }
 
 type ArgumentTypes<F extends Function> = F extends (...args: infer A) => any ? A : never;
+/**
+ * @__NO_SIDE_EFFECTS__
+ */
 function unsafeWrapper<T extends (...args: any) => any>(fn: T) {
   if (typeof fn !== 'function') throw new Error('unsafeWrapper fn should be function');
-  return function (...args: ArgumentTypes<T>): ReturnType<T> | undefined {
+  return function (...args: ArgumentTypes<T>): ReturnType<T> | void {
     try {
       return fn.apply(null, args);
     } catch (e) {}
   };
 }
 
+/**
+ * @__NO_SIDE_EFFECTS__
+ */
 function checksum(
   len: number,
   fn: (data: Uint8Array) => Uint8Array
@@ -279,38 +315,38 @@ export const utils = { alphabet, chain, checksum, radix, radix2, join, padding }
 
 // RFC 4648 aka RFC 3548
 // ---------------------
-export const base16: BytesCoder = chain(radix2(4), alphabet('0123456789ABCDEF'), join(''));
-export const base32: BytesCoder = chain(
+export const base16: BytesCoder = /* @__PURE__ */ chain(radix2(4), alphabet('0123456789ABCDEF'), join(''));
+export const base32: BytesCoder = /* @__PURE__ */ chain(
   radix2(5),
   alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'),
   padding(5),
   join('')
 );
-export const base32hex: BytesCoder = chain(
+export const base32hex: BytesCoder = /* @__PURE__ */ chain(
   radix2(5),
   alphabet('0123456789ABCDEFGHIJKLMNOPQRSTUV'),
   padding(5),
   join('')
 );
-export const base32crockford: BytesCoder = chain(
+export const base32crockford: BytesCoder = /* @__PURE__ */ chain(
   radix2(5),
   alphabet('0123456789ABCDEFGHJKMNPQRSTVWXYZ'),
   join(''),
   normalize((s: string) => s.toUpperCase().replace(/O/g, '0').replace(/[IL]/g, '1'))
 );
-export const base64: BytesCoder = chain(
+export const base64: BytesCoder = /* @__PURE__ */ chain(
   radix2(6),
   alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'),
   padding(6),
   join('')
 );
-export const base64url: BytesCoder = chain(
+export const base64url: BytesCoder = /* @__PURE__ */ chain(
   radix2(6),
   alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'),
   padding(6),
   join('')
 );
-export const base64urlnopad: BytesCoder = chain(
+export const base64urlnopad: BytesCoder = /* @__PURE__ */ chain(
   radix2(6),
   alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'),
   join('')
@@ -320,13 +356,13 @@ export const base64urlnopad: BytesCoder = chain(
 // -----------
 const genBase58 = (abc: string) => chain(radix(58), alphabet(abc), join(''));
 
-export const base58: BytesCoder = genBase58(
+export const base58: BytesCoder = /* @__PURE__ */ genBase58(
   '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 );
-export const base58flickr: BytesCoder = genBase58(
+export const base58flickr: BytesCoder = /* @__PURE__ */ genBase58(
   '123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ'
 );
-export const base58xrp: BytesCoder = genBase58(
+export const base58xrp: BytesCoder = /* @__PURE__ */ genBase58(
   'rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz'
 );
 
@@ -359,7 +395,7 @@ export const base58xmr: BytesCoder = {
   },
 };
 
-export const base58check = (sha256: (data: Uint8Array) => Uint8Array): BytesCoder =>
+export const base58check = /* @__PURE__ */ (sha256: (data: Uint8Array) => Uint8Array): BytesCoder =>
   chain(
     checksum(4, (data) => sha256(sha256(data))),
     base58
@@ -377,12 +413,15 @@ export interface Bech32DecodedWithArray<Prefix extends string = string> {
   bytes: Uint8Array;
 }
 
-const BECH_ALPHABET: Coder<number[], string> = chain(
+const BECH_ALPHABET: Coder<number[], string> = /* @__PURE__ */ chain(
   alphabet('qpzry9x8gf2tvdw0s3jn54khce6mua7l'),
   join('')
 );
 
 const POLYMOD_GENERATORS = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
+/**
+ * @__NO_SIDE_EFFECTS__
+ */
 function bech32Polymod(pre: number): number {
   const b = pre >> 25;
   let chk = (pre & 0x1ffffff) << 5;
@@ -392,6 +431,9 @@ function bech32Polymod(pre: number): number {
   return chk;
 }
 
+/**
+ * @__NO_SIDE_EFFECTS__
+ */
 function bechChecksum(prefix: string, words: number[], encodingConst = 1): string {
   const len = prefix.length;
   let chk = 1;
@@ -408,6 +450,9 @@ function bechChecksum(prefix: string, words: number[], encodingConst = 1): strin
   return BECH_ALPHABET.encode(convertRadix2([chk % 2 ** 30], 30, 5, false));
 }
 
+/**
+ * @__NO_SIDE_EFFECTS__
+ */
 function genBech32(encoding: 'bech32' | 'bech32m') {
   const ENCODING_CONST = encoding === 'bech32' ? 1 : 0x2bc830a3;
   const _words = radix2(5);
@@ -469,8 +514,8 @@ function genBech32(encoding: 'bech32' | 'bech32m') {
   return { encode, decode, decodeToBytes, decodeUnsafe, fromWords, fromWordsUnsafe, toWords };
 }
 
-export const bech32 = genBech32('bech32');
-export const bech32m = genBech32('bech32m');
+export const bech32 = /* @__PURE__ */ genBech32('bech32');
+export const bech32m = /* @__PURE__ */ genBech32('bech32m');
 
 declare const TextEncoder: any;
 declare const TextDecoder: any;
@@ -480,7 +525,7 @@ export const utf8: BytesCoder = {
   decode: (str) => new TextEncoder().encode(str),
 };
 
-export const hex: BytesCoder = chain(
+export const hex: BytesCoder = /* @__PURE__ */ chain(
   radix2(4),
   alphabet('0123456789abcdef'),
   join(''),
