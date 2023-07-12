@@ -26,6 +26,7 @@
     "test": "node test/index.js",
     "test:deno": "deno test test/deno.ts"
   },
+  "sideEffects": false,
   "author": "Paul Miller (https://paulmillr.com)",
   "license": "MIT",
   "homepage": "https://github.com/paulmillr/scure-base",
