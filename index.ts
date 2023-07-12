@@ -66,7 +66,7 @@ function alphabet(alphabet: Alphabet): Coder<number[], string[]> {
         assertNumber(i);
         if (i < 0 || i >= alphabet.length)
           throw new Error(`Digit index outside alphabet: ${i} (alphabet: ${alphabet.length})`);
-        return alphabet[i];
+        return alphabet[i]!;
       });
     },
     decode: (input: string[]) => {
@@ -165,7 +165,7 @@ function convertRadix(data: number[], from: number, to: number) {
     let carry = 0;
     let done = true;
     for (let i = pos; i < digits.length; i++) {
-      const digit = digits[i];
+      const digit = digits[i]!;
       const digitBase = from * carry + digit;
       if (
         !Number.isSafeInteger(digitBase) ||
@@ -175,11 +175,12 @@ function convertRadix(data: number[], from: number, to: number) {
         throw new Error('convertRadix: carry overflow');
       }
       carry = digitBase % to;
-      digits[i] = Math.floor(digitBase / to);
-      if (!Number.isSafeInteger(digits[i]) || digits[i] * to + carry !== digitBase)
+      const rounded = Math.floor(digitBase / to);
+      digits[i] = rounded;
+      if (!Number.isSafeInteger(rounded) || rounded * to + carry !== digitBase)
         throw new Error('convertRadix: carry overflow');
       if (!done) continue;
-      else if (!digits[i]) pos = i;
+      else if (!rounded) pos = i;
       else done = false;
     }
     res.push(carry);
@@ -381,7 +382,7 @@ export const base58xmr: BytesCoder = {
     let res = '';
     for (let i = 0; i < data.length; i += 8) {
       const block = data.subarray(i, i + 8);
-      res += base58.encode(block).padStart(XMR_BLOCK_LEN[block.length], '1');
+      res += base58.encode(block).padStart(XMR_BLOCK_LEN[block.length]!, '1');
     }
     return res;
   },
@@ -431,7 +432,7 @@ function bech32Polymod(pre: number): number {
   const b = pre >> 25;
   let chk = (pre & 0x1ffffff) << 5;
   for (let i = 0; i < POLYMOD_GENERATORS.length; i++) {
-    if (((b >> i) & 1) === 1) chk ^= POLYMOD_GENERATORS[i];
+    if (((b >> i) & 1) === 1) chk ^= POLYMOD_GENERATORS[i]!;
   }
   return chk;
 }
