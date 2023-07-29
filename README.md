@@ -6,11 +6,11 @@ Secure, [audited](#security) and 0-dep implementation of bech32, base64, base58,
 - Written in [functional style](#design-rationale), uses chaining
 - Has unique tests which ensure correctness
 - Matches specs
-    - [BIP173](https://en.bitcoin.it/wiki/BIP_0173), [BIP350](https://en.bitcoin.it/wiki/BIP_0350) for bech32 / bech32m
-    - [RFC 4648](https://datatracker.ietf.org/doc/html/rfc4648) (aka RFC 3548) for Base16, Base32, Base32Hex, Base64, Base64Url
-    - [Base58](https://www.ietf.org/archive/id/draft-msporny-base58-03.txt), [Base58check](https://en.bitcoin.it/wiki/Base58Check_encoding), [Base32 Crockford](https://www.crockford.com/base32.html)
+  - [BIP173](https://en.bitcoin.it/wiki/BIP_0173), [BIP350](https://en.bitcoin.it/wiki/BIP_0350) for bech32 / bech32m
+  - [RFC 4648](https://datatracker.ietf.org/doc/html/rfc4648) (aka RFC 3548) for Base16, Base32, Base32Hex, Base64, Base64Url
+  - [Base58](https://www.ietf.org/archive/id/draft-msporny-base58-03.txt), [Base58check](https://en.bitcoin.it/wiki/Base58Check_encoding), [Base32 Crockford](https://www.crockford.com/base32.html)
 
-### This library belongs to *scure*
+### This library belongs to _scure_
 
 > **scure** — secure, independently audited packages for every use case.
 
@@ -25,10 +25,6 @@ Secure, [audited](#security) and 0-dep implementation of bech32, base64, base58,
 ## Usage
 
 > npm install @scure/base
-
-Or
-
-> yarn add @scure/base
 
 ```js
 import { base16, base32, base64, base58 } from '@scure/base';
@@ -48,16 +44,6 @@ base16.encode(data);
 base32hex.encode(data);
 ```
 
-Bech32:
-
-```js
-import { bech32, bech32m } from '@scure/base';
-const words = bech32.toWords(data);
-const be = bech32.encode('prefix', words);
-const { prefix, words } = bech32.decode(be);
-bech32m.encode('prefix', words);
-```
-
 base58check is a special case: you need to pass `sha256()` function:
 
 ```js
@@ -72,6 +58,31 @@ import { str, bytes } from '@scure/base';
 const encoded = str('base64', data);
 const data = bytes('base64', encoded);
 ```
+
+## Bech32, Bech32m and Bitcoin
+
+We provide low-level bech32 operations.
+If you need high-level methods for BTC (addresses, and others), use
+[scure-btc-signer](https://github.com/paulmillr/scure-btc-signer) instead.
+
+Bitcoin addresses use both 5-bit words and bytes representations.
+They can't be parsed using `bech32.decodeToBytes`. Instead, do something this:
+
+```ts
+const decoded = bech32.decode(address);
+// NOTE: words in bitcoin addresses contain version as first element,
+// with actual witnes program words in rest
+// BIP-141: The value of the first push is called the "version byte".
+// The following byte vector pushed is called the "witness program".
+const [version, ...dataW] = decoded.words;
+const program = bech32.fromWords(dataW); // actual witness program
+```
+
+Same applies to Lightning Invoice Protocol
+[BOLT-11](https://github.com/lightning/bolts/blob/master/11-payment-encoding.md).
+We have many tests in `./test/bip173.test.js` that serve as minimal examples of
+Bitcoin address and Lightning Invoice Protocol parsers.
+Keep in mind that you'll need to verify the examples before using them in your code.
 
 ## Design rationale
 
@@ -152,7 +163,7 @@ The library has been audited by Cure53 on Jan 5, 2022. Check out the audit [PDF]
 
 1. The library was initially developed for [js-ethereum-cryptography](https://github.com/ethereum/js-ethereum-cryptography)
 2. At commit [ae00e6d7](https://github.com/ethereum/js-ethereum-cryptography/commit/ae00e6d7d24fb3c76a1c7fe10039f6ecd120b77e), it
-  was extracted to a separate package called `micro-base`
+   was extracted to a separate package called `micro-base`
 3. After the audit we've decided to use NPM namespace for security. Since `@micro` namespace was taken, we've renamed the package to `@scure/base`
 
 ## License
