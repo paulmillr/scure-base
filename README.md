@@ -1,6 +1,16 @@
-# scure-base
+# [@scure/base](https://paulmillr.com/noble/#scure)
+  * [Usage](#usage)
+  * [Design rationale](#design-rationale)
+  * [Security](#security)
+  * [Example Applications usage](#example-applications-usage)
+  * [License](#license)
 
-Secure, [audited](#security) and 0-dep implementation of bech32, base64, base58, base32 & base16.
+<small><i><a href='https://github.com/sponsors/paulmillr/'>You could fund my work with GitHub Sponsorship</a></i></small>
+
+
+## Overview
+
+**Secure**, [audited](#security) and 0-dep implementation of bech32, base64, base58, base32 & base16.
 
 - Supports ESM and common.js
 - Written in [functional style](#design-rationale), uses chaining
@@ -14,7 +24,7 @@ Secure, [audited](#security) and 0-dep implementation of bech32, base64, base58,
 
 > **scure** — secure, independently audited packages for every use case.
 
-- Audited by a third-party
+- Audited by a third-party[^1]
 - Releases are signed with PGP keys and built transparently with NPM provenance
 - Check out all libraries:
   [base](https://github.com/paulmillr/scure-base),
@@ -22,9 +32,13 @@ Secure, [audited](#security) and 0-dep implementation of bech32, base64, base58,
   [bip39](https://github.com/paulmillr/scure-bip39),
   [btc-signer](https://github.com/paulmillr/scure-btc-signer)
 
+[^1]: Audits-Report TypeScript Hashing Libraries (Published 12.2021). Cure53, Dr.-Ing. M. Heiderich, Dr. A. Pirker, Dipl.-Ing. David Gstir [https://cure53.de/pentest-report_hashing-libs.pdf](https://cure53.de/pentest-report_hashing-libs.pdf)
+
+
 ## Usage
 
-> npm install @scure/base
+> npm install @scure/base      
+
 
 ```js
 import { base16, base32, base64, base58 } from '@scure/base';
@@ -114,7 +128,7 @@ base58checksum = {
 But instead of creating two big functions for each specific case,
 we create them from tiny composamble building blocks:
 
-```
+```js
 base58checksum = chain(checksum(), radix(), alphabet())
 ```
 
@@ -166,6 +180,25 @@ The library has been audited by Cure53 on Jan 5, 2022. Check out the audit [PDF]
    was extracted to a separate package called `micro-base`
 3. After the audit we've decided to use NPM namespace for security. Since `@micro` namespace was taken, we've renamed the package to `@scure/base`
 
-## License
+## Example Applications usage
 
-MIT (c) Paul Miller [(https://paulmillr.com)](https://paulmillr.com), see LICENSE file.
+Examples of applications that are using `scure-base` 
+
+### [`truestamp/prefixed-api-key`](https://github.com/truestamp/prefixed-api-key)
+
+[https://github.com/truestamp/prefixed-api-key](https://github.com/truestamp/prefixed-api-key)
+
+A fork of seamapi/prefixed-api-key this is essentially a complete re-write to enhance the cryptographic security properties and safety when verifying a key. The keys and verifiers of these two libraries are not compatible.
+
+> [Motivating post on the issues with using JWT from fly.io](https://fly.io/blog/api-tokens-a-tedious-survey/)
+
+#### Securely encoded/decode the Base58Check values
+
+Base58Check encoding of this random value results in a URL safe string that also encodes four bytes of a SHA-256 hash that serves as a checksum value and prevents typos. The audited paulmillr/scure-base library is used to encoded/decode the Base58Check values.[^2]
+
+[^2]: truestamp/prefixed-api-key: Module for generating a prefixed API Key. (July 2023). [https://github.com/truestamp/prefixed-api-key#secret](https://github.com/truestamp/prefixed-api-key#secret)
+
+
+## License    
+
+MIT (c) Paul Miller [(https://paulmillr.com)](https://paulmillr.com), see [LICENSE](./LICENSE) file.
