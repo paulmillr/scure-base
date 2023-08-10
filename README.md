@@ -1,3 +1,4 @@
+
 # [@scure/base](https://paulmillr.com/noble/#scure)
   * [Usage](#usage)
   * [Design rationale](#design-rationale)
@@ -10,7 +11,7 @@
 
 ## Overview
 
-**Secure**, [audited](#security) and 0-dep implementation of bech32, base64, base58, base32 & base16.
+🔐 [Audited](#security) and 0-dep implementation of `bech32`, `base64`, `base58`, `base32` & `base16`.
 
 - Supports ESM and common.js
 - Written in [functional style](#design-rationale), uses chaining
@@ -24,15 +25,15 @@
 
 > **scure** — secure, independently audited packages for every use case.
 
-- Audited by a third-party[^1]
+- Audited by a third-party, Cure53[^1]
 - Releases are signed with PGP keys and built transparently with NPM provenance
 - Check out all libraries:
-  [base](https://github.com/paulmillr/scure-base),
-  [bip32](https://github.com/paulmillr/scure-bip32),
-  [bip39](https://github.com/paulmillr/scure-bip39),
-  [btc-signer](https://github.com/paulmillr/scure-btc-signer)
+  [scure-base](https://github.com/paulmillr/scure-base),
+  [scure-bip32](https://github.com/paulmillr/scure-bip32),
+  [scure-bip39](https://github.com/paulmillr/scure-bip39),
+  [scure-btc-signer](https://github.com/paulmillr/scure-btc-signer)
 
-[^1]: Audits-Report TypeScript Hashing Libraries (Published 12.2021). Cure53, Dr.-Ing. M. Heiderich, Dr. A. Pirker, Dipl.-Ing. David Gstir [https://cure53.de/pentest-report_hashing-libs.pdf](https://cure53.de/pentest-report_hashing-libs.pdf)
+[^1]: Audits-Report TypeScript Hashing Libraries (Published 12.2021). Cure53, Dr.-Ing. M. Heiderich, Dr. A. Pirker, Dipl.-Ing. David Gstir. [SECURITY](./SECURITY.md)
 
 
 ## Usage
@@ -58,7 +59,7 @@ base16.encode(data);
 base32hex.encode(data);
 ```
 
-base58check is a special case: you need to pass `sha256()` function:
+**base58check** is a special case: you need to pass `sha256()` function.
 
 ```js
 import { base58check } from '@scure/base';
@@ -171,9 +172,9 @@ constant sized input, because variable length sized input from user can cause Do
 On the other hand, if both bases are power of same number (like `2**8 <-> 2**64`),
 there is linear algorithm. For now we have implementation for power-of-two bases only (radix2).
 
-## Security
+## [SECURITY.md](./SECURITY.md)
 
-The library has been audited by Cure53 on Jan 5, 2022. Check out the audit [PDF](./audit/2022-01-05-cure53-audit-nbl2.pdf) & [URL](https://cure53.de/pentest-report_hashing-libs.pdf). See [changes since audit](https://github.com/paulmillr/scure-base/compare/1.0.0..main).
+The library has been audited by Cure53 on Jan 5, 2022. [SECURITY.md](./SECURITY.md) Reference audit [PDF](./audit/2022-01-05-cure53-audit-nbl2.pdf) & [URL](https://cure53.de/pentest-report_hashing-libs.pdf). See [changes since audit](https://github.com/paulmillr/scure-base/compare/1.0.0..main). 
 
 1. The library was initially developed for [js-ethereum-cryptography](https://github.com/ethereum/js-ethereum-cryptography)
 2. At commit [ae00e6d7](https://github.com/ethereum/js-ethereum-cryptography/commit/ae00e6d7d24fb3c76a1c7fe10039f6ecd120b77e), it
@@ -199,6 +200,8 @@ Base58Check encoding of this random value results in a URL safe string that also
 [^2]: truestamp/prefixed-api-key: Module for generating a prefixed API Key. (July 2023). [https://github.com/truestamp/prefixed-api-key#secret](https://github.com/truestamp/prefixed-api-key#secret)
 
 
-## License    
+## License  
 
-MIT (c) Paul Miller [(https://paulmillr.com)](https://paulmillr.com), see [LICENSE](./LICENSE) file.
+Licensed under the MIT [LICENSE](./LICENSE)    
+     
+Copyright (C) 2023 Paul Miller [(https://paulmillr.com)](https://paulmillr.com)   
