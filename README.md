@@ -1,14 +1,19 @@
 # scure-base
 
-Secure, [audited](#security) and 0-dep implementation of bech32, base64, base58, base32 & base16.
+Audited and 0-dep implementation of bech32, base64, base58, base32 & base16.
 
-- Supports ESM and common.js
-- Written in [functional style](#design-rationale), uses chaining
-- Has unique tests which ensure correctness
-- Matches specs
+- [🔒 Audited](#security) by an independent security firm
+- 🔻 Tree-shaking-friendly: use only what's necessary, other code won't be included
+- 🔍 Unique tests which ensure correctness
+- ✍️ Written in [functional style](#design-rationale), easily composable
+- 💼 Matches specs
   - [BIP173](https://en.bitcoin.it/wiki/BIP_0173), [BIP350](https://en.bitcoin.it/wiki/BIP_0350) for bech32 / bech32m
   - [RFC 4648](https://datatracker.ietf.org/doc/html/rfc4648) (aka RFC 3548) for Base16, Base32, Base32Hex, Base64, Base64Url
-  - [Base58](https://www.ietf.org/archive/id/draft-msporny-base58-03.txt), [Base58check](https://en.bitcoin.it/wiki/Base58Check_encoding), [Base32 Crockford](https://www.crockford.com/base32.html)
+  - [Base58](https://www.ietf.org/archive/id/draft-msporny-base58-03.txt),
+    [Base58check](https://en.bitcoin.it/wiki/Base58Check_encoding),
+    [Base32 Crockford](https://www.crockford.com/base32.html)
+
+Check out [Projects using scure-base](#projects-using-scure-base).
 
 ### This library belongs to _scure_
 
@@ -17,19 +22,28 @@ Secure, [audited](#security) and 0-dep implementation of bech32, base64, base58,
 - Audited by a third-party
 - Releases are signed with PGP keys and built transparently with NPM provenance
 - Check out all libraries:
-  [base](https://github.com/paulmillr/scure-base),
-  [bip32](https://github.com/paulmillr/scure-bip32),
-  [bip39](https://github.com/paulmillr/scure-bip39),
-  [btc-signer](https://github.com/paulmillr/scure-btc-signer)
+  [scure-base](https://github.com/paulmillr/scure-base),
+  [scure-bip32](https://github.com/paulmillr/scure-bip32),
+  [scure-bip39](https://github.com/paulmillr/scure-bip39),
+  [scure-btc-signer](https://github.com/paulmillr/scure-btc-signer)
 
 ## Usage
 
 > npm install @scure/base
 
+We support all major platforms and runtimes. The library is hybrid ESM / Common.js package.
+
 ```js
 import { base16, base32, base64, base58 } from '@scure/base';
 // Flavors
-import { base58xmr, base58xrp, base32hex, base32crockford, base64url, base64urlnopad } from '@scure/base';
+import {
+  base58xmr,
+  base58xrp,
+  base32hex,
+  base32crockford,
+  base64url,
+  base64urlnopad,
+} from '@scure/base';
 
 const data = Uint8Array.from([1, 2, 3]);
 base64.decode(base64.encode(data));
@@ -161,10 +175,20 @@ there is linear algorithm. For now we have implementation for power-of-two bases
 
 The library has been audited by Cure53 on Jan 5, 2022. Check out the audit [PDF](./audit/2022-01-05-cure53-audit-nbl2.pdf) & [URL](https://cure53.de/pentest-report_hashing-libs.pdf). See [changes since audit](https://github.com/paulmillr/scure-base/compare/1.0.0..main).
 
-1. The library was initially developed for [js-ethereum-cryptography](https://github.com/ethereum/js-ethereum-cryptography)
-2. At commit [ae00e6d7](https://github.com/ethereum/js-ethereum-cryptography/commit/ae00e6d7d24fb3c76a1c7fe10039f6ecd120b77e), it
-   was extracted to a separate package called `micro-base`
-3. After the audit we've decided to use NPM namespace for security. Since `@micro` namespace was taken, we've renamed the package to `@scure/base`
+The library was initially developed for [js-ethereum-cryptography](https://github.com/ethereum/js-ethereum-cryptography).
+At commit [ae00e6d7](https://github.com/ethereum/js-ethereum-cryptography/commit/ae00e6d7d24fb3c76a1c7fe10039f6ecd120b77e),
+it was extracted to a separate package called `micro-base`.
+After the audit we've decided to use `@scure` NPM namespace for security.
+
+## Resources
+
+### Projects using scure-base
+
+- [prefixed-api-key](https://github.com/truestamp/prefixed-api-key):
+  A re-write of seamapi/prefixed-api-key that enhances the
+  cryptographic security properties and safety when verifying a key. The keys and verifiers
+  of these two libraries are not compatible.
+  [Motivating post on the issues with using JWT from fly.io](https://fly.io/blog/api-tokens-a-tedious-survey/)
 
 ## License
 
