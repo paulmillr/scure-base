@@ -22,10 +22,11 @@ Check out [Projects using scure-base](#projects-using-scure-base).
 - Audited by a third-party
 - Releases are signed with PGP keys and built transparently with NPM provenance
 - Check out all libraries:
-  [scure-base](https://github.com/paulmillr/scure-base),
-  [scure-bip32](https://github.com/paulmillr/scure-bip32),
-  [scure-bip39](https://github.com/paulmillr/scure-bip39),
-  [scure-btc-signer](https://github.com/paulmillr/scure-btc-signer)
+  [base](https://github.com/paulmillr/scure-base),
+  [bip32](https://github.com/paulmillr/scure-bip32),
+  [bip39](https://github.com/paulmillr/scure-bip39),
+  [btc-signer](https://github.com/paulmillr/scure-btc-signer),
+  [starknet](https://github.com/paulmillr/scure-starknet)
 
 ## Usage
 
