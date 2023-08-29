@@ -1,10 +1,10 @@
 # scure-base
 
-Audited and 0-dep implementation of bech32, base64, base58, base32 & base16.
+Audited & minimal implementation of bech32, base64, base58, base32 & base16.
 
-- [🔒 Audited](#security) by an independent security firm
+- 🔒 [Audited](#security) by an independent security firm
 - 🔻 Tree-shaking-friendly: use only what's necessary, other code won't be included
-- 🔍 Unique tests which ensure correctness
+- 📦 ESM and common.js
 - ✍️ Written in [functional style](#design-rationale), easily composable
 - 💼 Matches specs
   - [BIP173](https://en.bitcoin.it/wiki/BIP_0173), [BIP350](https://en.bitcoin.it/wiki/BIP_0350) for bech32 / bech32m
@@ -19,7 +19,7 @@ Check out [Projects using scure-base](#projects-using-scure-base).
 
 > **scure** — secure, independently audited packages for every use case.
 
-- Audited by a third-party
+- Minimal or zero dependencies
 - Releases are signed with PGP keys and built transparently with NPM provenance
 - Check out all libraries:
   [base](https://github.com/paulmillr/scure-base),
@@ -174,7 +174,12 @@ there is linear algorithm. For now we have implementation for power-of-two bases
 
 ## Security
 
-The library has been audited by Cure53 on Jan 5, 2022. Check out the audit [PDF](./audit/2022-01-05-cure53-audit-nbl2.pdf) & [URL](https://cure53.de/pentest-report_hashing-libs.pdf). See [changes since audit](https://github.com/paulmillr/scure-base/compare/1.0.0..main).
+The library has been independently audited:
+
+- at version 1.0.0, in Jan 2022, by [cure53](https://cure53.de)
+  - PDFs: [online](https://cure53.de/pentest-report_hashing-libs.pdf), [offline](./audit/2022-01-05-cure53-audit-nbl2.pdf)
+  - [Changes since audit](https://github.com/paulmillr/scure-base/compare/1.0.0..main).
+  - The audit has been funded by [Ethereum Foundation](https://ethereum.org/en/) with help of [Nomic Labs](https://nomiclabs.io)
 
 The library was initially developed for [js-ethereum-cryptography](https://github.com/ethereum/js-ethereum-cryptography).
 At commit [ae00e6d7](https://github.com/ethereum/js-ethereum-cryptography/commit/ae00e6d7d24fb3c76a1c7fe10039f6ecd120b77e),
