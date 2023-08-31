@@ -485,9 +485,9 @@ function genBech32(encoding: 'bech32' | 'bech32m') {
 
   function decode<Prefix extends string>(
     str: `${Prefix}1${string}`,
-    limit: number | false
+    limit?: number | false
   ): Bech32Decoded<Prefix>;
-  function decode(str: string, limit: number | false): Bech32Decoded;
+  function decode(str: string, limit?: number | false): Bech32Decoded;
   function decode(str: string, limit: number | false = 90): Bech32Decoded {
     if (typeof str !== 'string')
       throw new Error(`bech32.decode input should be string, not ${typeof str}`);
