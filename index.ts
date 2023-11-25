@@ -239,7 +239,7 @@ function radix(num: number): Coder<Uint8Array, number[]> {
     },
     decode: (digits: number[]) => {
       if (!Array.isArray(digits) || (digits.length && typeof digits[0] !== 'number'))
-        throw new Error('radix.decode input should be array of strings');
+        throw new Error('radix.decode input should be array of numbers');
       return Uint8Array.from(convertRadix(digits, num, 2 ** 8));
     },
   };
@@ -263,7 +263,7 @@ function radix2(bits: number, revPadding = false): Coder<Uint8Array, number[]> {
     },
     decode: (digits: number[]) => {
       if (!Array.isArray(digits) || (digits.length && typeof digits[0] !== 'number'))
-        throw new Error('radix2.decode input should be array of strings');
+        throw new Error('radix2.decode input should be array of numbers');
       return Uint8Array.from(convertRadix2(digits, bits, 8, revPadding));
     },
   };
