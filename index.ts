@@ -523,6 +523,98 @@ function genBech32(encoding: 'bech32' | 'bech32m') {
 export const bech32 = /* @__PURE__ */ genBech32('bech32');
 export const bech32m = /* @__PURE__ */ genBech32('bech32m');
 
+const POLYMOD_GENERATORS_CASHADDR = [
+  0x98f2bc8e61n,
+  0x79b76d99e2n,
+  0xf33e5fb3c4n,
+  0xae2eabe2a8n,
+  0x1e4f43e470n,
+];
+/**
+ * @__NO_SIDE_EFFECTS__
+ */
+function cashaddrPolymod(pre: bigint): bigint {
+  const b = pre >> 35n;
+  let chk = (pre & 0x07ffffffffn) << 5n;
+  for (let i = 0; i < POLYMOD_GENERATORS_CASHADDR.length; i++) {
+    if (((b >> BigInt(i)) & 1n) === 1n) chk ^= POLYMOD_GENERATORS_CASHADDR[i]!;
+  }
+  return chk;
+}
+
+/**
+ * @__NO_SIDE_EFFECTS__
+ */
+function cashaddrChecksum(prefix: string, words: number[]): string {
+  const len = prefix.length;
+  let chk = 1n;
+  for (let i = 0; i < len; i++) {
+    const c = prefix.charCodeAt(i);
+    if (c < 33 || c > 126) throw new Error(`Invalid prefix (${prefix})`);
+    chk = cashaddrPolymod(chk) ^ (BigInt(c) & 0x1fn);
+  }
+  chk = cashaddrPolymod(chk);
+  for (let v of words) chk = cashaddrPolymod(chk) ^ BigInt(v);
+  for (let i = 0; i < 8; i++) chk = cashaddrPolymod(chk);
+  chk ^= 1n;
+  return BECH_ALPHABET.encode(convertRadix([Number(chk % 2n ** 40n)], 2 ** 40, 2 ** 5));
+}
+
+/**
+ * @__NO_SIDE_EFFECTS__
+ */
+function genCashaddr() {
+  const _words = radix2(5, true);
+  const fromWords = _words.decode;
+  const toWords = _words.encode;
+  const fromWordsUnsafe = unsafeWrapper(fromWords);
+
+  function encode<Prefix extends string>(
+    prefix: Prefix,
+    words: number[] | Uint8Array
+  ): `${Lowercase<Prefix>}:${string}` {
+    if (typeof prefix !== 'string')
+      throw new Error(`cashaddr.encode prefix should be string, not ${typeof prefix}`);
+    if (!Array.isArray(words) || (words.length && typeof words[0] !== 'number'))
+      throw new Error(`cashaddr.encode words should be array of numbers, not ${typeof words}`);
+    const lowered = prefix.toLowerCase();
+    const sum = cashaddrChecksum(lowered, words);
+    return `${lowered}:${BECH_ALPHABET.encode(words)}${sum}` as `${Lowercase<Prefix>}:${string}`;
+  }
+
+  function decode<Prefix extends string>(str: `${Prefix}:${string}`): Bech32Decoded<Prefix>;
+  function decode(str: string): Bech32Decoded;
+  function decode(str: string): Bech32Decoded {
+    if (typeof str !== 'string')
+      throw new Error(`cashaddr.decode input should be string, not ${typeof str}`);
+    const lowered = str.toLowerCase();
+    if (str !== lowered && str !== str.toUpperCase())
+      throw new Error(`String must be lowercase or uppercase`);
+    str = lowered;
+    const sepIndex = str.lastIndexOf(':');
+    if (sepIndex === 0 || sepIndex === -1)
+      throw new Error(`Symbol ":" must be present between prefix and data only`);
+    const prefix = str.slice(0, sepIndex);
+    const _words = str.slice(sepIndex + 1);
+    if (_words.length < 8) throw new Error('Data must be at least 8 characters long');
+    const words = BECH_ALPHABET.decode(_words).slice(0, -8);
+    const sum = cashaddrChecksum(prefix, words);
+    if (!_words.endsWith(sum)) throw new Error(`Invalid checksum in ${str}: expected "${sum}"`);
+    return { prefix, words };
+  }
+
+  const decodeUnsafe = unsafeWrapper(decode);
+
+  function decodeToBytes(str: string): Bech32DecodedWithArray {
+    const { prefix, words } = decode(str);
+    return { prefix, words, bytes: fromWords(words) };
+  }
+
+  return { encode, decode, decodeToBytes, decodeUnsafe, fromWords, fromWordsUnsafe, toWords };
+}
+
+export const cashaddr = /* @__PURE__ */ genCashaddr();
+
 declare const TextEncoder: any;
 declare const TextDecoder: any;
 
