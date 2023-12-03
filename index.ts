@@ -37,17 +37,13 @@ type AsChain<C extends Chain, Rest = Tail<C>> = {
  * @__NO_SIDE_EFFECTS__
  */
 function chain<T extends Chain & AsChain<T>>(...args: T): Coder<Input<First<T>>, Output<Last<T>>> {
+  const id = (a: any) => a;
   // Wrap call in closure so JIT can inline calls
   const wrap = (a: any, b: any) => (c: any) => a(b(c));
   // Construct chain of args[-1].encode(args[-2].encode([...]))
-  const encode = Array.from(args)
-    .reverse()
-    .reduce((acc, i: any) => (acc ? wrap(acc, i.encode) : i.encode), undefined) as any;
+  const encode = args.map((x) => x.encode).reduceRight(wrap, id);
   // Construct chain of args[0].decode(args[1].decode(...))
-  const decode = args.reduce(
-    (acc, i: any) => (acc ? wrap(acc, i.decode) : i.decode),
-    undefined
-  ) as any;
+  const decode = args.map((x) => x.decode).reduce(wrap, id);
   return { encode, decode };
 }
 
