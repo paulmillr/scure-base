@@ -236,8 +236,7 @@ function radix(num: number): Coder<Uint8Array, number[]> {
   assertNumber(num);
   return {
     encode: (bytes: Uint8Array) => {
-      if (!isBytes(bytes))
-        throw new Error('radix.encode input should be Uint8Array');
+      if (!isBytes(bytes)) throw new Error('radix.encode input should be Uint8Array');
       return convertRadix(Array.from(bytes), 2 ** 8, num);
     },
     decode: (digits: number[]) => {
@@ -260,8 +259,7 @@ function radix2(bits: number, revPadding = false): Coder<Uint8Array, number[]> {
     throw new Error('radix2: carry overflow');
   return {
     encode: (bytes: Uint8Array) => {
-      if (!isBytes(bytes))
-        throw new Error('radix2.encode input should be Uint8Array');
+      if (!isBytes(bytes)) throw new Error('radix2.encode input should be Uint8Array');
       return convertRadix2(Array.from(bytes), 8, bits, !revPadding);
     },
     decode: (digits: number[]) => {
@@ -296,8 +294,7 @@ function checksum(
   if (typeof fn !== 'function') throw new Error('checksum fn should be function');
   return {
     encode(data: Uint8Array) {
-      if (!isBytes(data))
-        throw new Error('checksum.encode: input should be Uint8Array');
+      if (!isBytes(data)) throw new Error('checksum.encode: input should be Uint8Array');
       const checksum = fn(data).slice(0, len);
       const res = new Uint8Array(data.length + len);
       res.set(data);
@@ -305,8 +302,7 @@ function checksum(
       return res;
     },
     decode(data: Uint8Array) {
-      if (!isBytes(data))
-        throw new Error('checksum.decode: input should be Uint8Array');
+      if (!isBytes(data)) throw new Error('checksum.decode: input should be Uint8Array');
       const payload = data.slice(0, -len);
       const newChecksum = fn(payload).slice(0, len);
       const oldChecksum = data.slice(-len);
@@ -404,7 +400,9 @@ export const base58xmr: BytesCoder = {
   },
 };
 
-export const createBase58check = /* @__PURE__ */ (sha256: (data: Uint8Array) => Uint8Array): BytesCoder =>
+export const createBase58check = /* @__PURE__ */ (
+  sha256: (data: Uint8Array) => Uint8Array
+): BytesCoder =>
   chain(
     checksum(4, (data) => sha256(sha256(data))),
     base58
