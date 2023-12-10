@@ -17,6 +17,13 @@ export interface BytesCoder extends Coder<Uint8Array, string> {
   decode: (str: string) => Uint8Array;
 }
 
+function isBytes(a: unknown): a is Uint8Array {
+  return (
+    a instanceof Uint8Array ||
+    (a != null && typeof a === 'object' && a.constructor.name === 'Uint8Array')
+  );
+}
+
 // TODO: some recusive type inference so it would check correct order of input/output inside rest?
 // like <string, number>, <number, bytes>, <bytes, float>
 type Chain = [Coder<any, any>, ...Coder<any, any>[]];
@@ -229,7 +236,7 @@ function radix(num: number): Coder<Uint8Array, number[]> {
   assertNumber(num);
   return {
     encode: (bytes: Uint8Array) => {
-      if (!(bytes instanceof Uint8Array))
+      if (!isBytes(bytes))
         throw new Error('radix.encode input should be Uint8Array');
       return convertRadix(Array.from(bytes), 2 ** 8, num);
     },
@@ -253,7 +260,7 @@ function radix2(bits: number, revPadding = false): Coder<Uint8Array, number[]> {
     throw new Error('radix2: carry overflow');
   return {
     encode: (bytes: Uint8Array) => {
-      if (!(bytes instanceof Uint8Array))
+      if (!isBytes(bytes))
         throw new Error('radix2.encode input should be Uint8Array');
       return convertRadix2(Array.from(bytes), 8, bits, !revPadding);
     },
@@ -289,7 +296,7 @@ function checksum(
   if (typeof fn !== 'function') throw new Error('checksum fn should be function');
   return {
     encode(data: Uint8Array) {
-      if (!(data instanceof Uint8Array))
+      if (!isBytes(data))
         throw new Error('checksum.encode: input should be Uint8Array');
       const checksum = fn(data).slice(0, len);
       const res = new Uint8Array(data.length + len);
@@ -298,7 +305,7 @@ function checksum(
       return res;
     },
     decode(data: Uint8Array) {
-      if (!(data instanceof Uint8Array))
+      if (!isBytes(data))
         throw new Error('checksum.decode: input should be Uint8Array');
       const payload = data.slice(0, -len);
       const newChecksum = fn(payload).slice(0, len);
@@ -548,7 +555,7 @@ const coderTypeError =
 
 export const bytesToString = (type: CoderType, bytes: Uint8Array): string => {
   if (typeof type !== 'string' || !CODERS.hasOwnProperty(type)) throw new TypeError(coderTypeError);
-  if (!(bytes instanceof Uint8Array)) throw new TypeError('bytesToString() expects Uint8Array');
+  if (!isBytes(bytes)) throw new TypeError('bytesToString() expects Uint8Array');
   return CODERS[type].encode(bytes);
 };
 export const str = bytesToString; // as in python, but for bytes only
