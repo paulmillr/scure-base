@@ -404,11 +404,13 @@ export const base58xmr: BytesCoder = {
   },
 };
 
-export const base58check = /* @__PURE__ */ (sha256: (data: Uint8Array) => Uint8Array): BytesCoder =>
+export const createBase58check = /* @__PURE__ */ (sha256: (data: Uint8Array) => Uint8Array): BytesCoder =>
   chain(
     checksum(4, (data) => sha256(sha256(data))),
     base58
   );
+// legacy export, bad name
+export const base58check = createBase58check;
 
 // Bech32 code
 // -----------

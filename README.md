@@ -63,8 +63,8 @@ base32hex.encode(data);
 base58check is a special case: you need to pass `sha256()` function:
 
 ```js
-import { base58check } from '@scure/base';
-base58check(sha256).encode(data);
+import { createBase58check } from '@scure/base';
+createBase58check(sha256).encode(data);
 ```
 
 Alternative API:
