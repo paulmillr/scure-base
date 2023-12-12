@@ -312,7 +312,11 @@ function checksum(
     },
   };
 }
-export const utils = { alphabet, chain, checksum, radix, radix2, join, padding };
+
+// prettier-ignore
+export const utils = {
+  alphabet, chain, checksum, convertRadix, convertRadix2, radix, radix2, join, padding,
+};
 
 // RFC 4648 aka RFC 3548
 // ---------------------
