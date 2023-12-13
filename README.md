@@ -154,7 +154,7 @@ export function getCoder(wordlist: string[]) {
 }
 ```
 
-## base58 is O(n^2) and radixes
+### base58 is O(n^2) and radixes
 
 `Uint8Array` is represented as big-endian number:
 
@@ -191,11 +191,18 @@ After the audit we've decided to use `@scure` NPM namespace for security.
 
 ### Projects using scure-base
 
+- [scure-btc-signer](https://github.com/paulmillr/scure-btc-signer)
 - [prefixed-api-key](https://github.com/truestamp/prefixed-api-key):
   A re-write of seamapi/prefixed-api-key that enhances the
   cryptographic security properties and safety when verifying a key. The keys and verifiers
   of these two libraries are not compatible.
   [Motivating post on the issues with using JWT from fly.io](https://fly.io/blog/api-tokens-a-tedious-survey/)
+- [coinspace](https://github.com/CoinSpace/CoinSpace) wallet and its modules:
+  [ada](https://github.com/CoinSpace/cs-cardano-wallet),
+  [btc](https://github.com/CoinSpace/cs-bitcoin-wallet)
+  [eos](https://github.com/CoinSpace/cs-eos-wallet),
+  [sol](https://github.com/CoinSpace/cs-solana-wallet),
+  [xmr](https://github.com/CoinSpace/cs-monero-wallet)
 
 ## License
 
