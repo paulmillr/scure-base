@@ -504,16 +504,15 @@ function genBech32(encoding: 'bech32' | 'bech32m') {
     const lowered = str.toLowerCase();
     if (str !== lowered && str !== str.toUpperCase())
       throw new Error(`String must be lowercase or uppercase`);
-    str = lowered;
-    const sepIndex = str.lastIndexOf('1');
+    const sepIndex = lowered.lastIndexOf('1');
     if (sepIndex === 0 || sepIndex === -1)
       throw new Error(`Letter "1" must be present between prefix and data only`);
-    const prefix = str.slice(0, sepIndex);
-    const _words = str.slice(sepIndex + 1);
-    if (_words.length < 6) throw new Error('Data must be at least 6 characters long');
-    const words = BECH_ALPHABET.decode(_words).slice(0, -6);
+    const prefix = lowered.slice(0, sepIndex);
+    const data = lowered.slice(sepIndex + 1);
+    if (data.length < 6) throw new Error('Data must be at least 6 characters long');
+    const words = BECH_ALPHABET.decode(data).slice(0, -6);
     const sum = bechChecksum(prefix, words, ENCODING_CONST);
-    if (!_words.endsWith(sum)) throw new Error(`Invalid checksum in ${str}: expected "${sum}"`);
+    if (!data.endsWith(sum)) throw new Error(`Invalid checksum in ${str}: expected "${sum}"`);
     return { prefix, words };
   }
 
