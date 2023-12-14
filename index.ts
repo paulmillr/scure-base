@@ -482,6 +482,7 @@ function genBech32(encoding: 'bech32' | 'bech32m') {
       throw new Error(`bech32.encode prefix should be string, not ${typeof prefix}`);
     if (!Array.isArray(words) || (words.length && typeof words[0] !== 'number'))
       throw new Error(`bech32.encode words should be array of numbers, not ${typeof words}`);
+    if (prefix.length === 0) throw new TypeError(`Invalid prefix length ${prefix.length}`);
     const actualLength = prefix.length + 7 + words.length;
     if (limit !== false && actualLength > limit)
       throw new TypeError(`Length ${actualLength} exceeds limit ${limit}`);

@@ -69,6 +69,15 @@ const BECH32_INVALID_DECODE = [
 
 const BECH32_INVALID_ENCODE = [
   {
+    prefix: '',
+    words: [],
+  },
+  {
+    prefix:
+      'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzfoobar',
+    words: [],
+  },
+  {
     prefix: 'abc',
     words: [128],
   },
@@ -181,6 +190,15 @@ const BECH32M_INVALID_DECODE = [
 ];
 
 const BECH32M_INVALID_ENCODE = [
+  {
+    prefix: '',
+    words: [],
+  },
+  {
+    prefix:
+      'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzfoobar',
+    words: [],
+  },
   {
     prefix: 'abc',
     words: [128],
