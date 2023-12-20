@@ -349,6 +349,11 @@ export const base64: BytesCoder = /* @__PURE__ */ chain(
   padding(6),
   join('')
 );
+export const base64nopad: BytesCoder = /* @__PURE__ */ chain(
+  radix2(6),
+  alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'),
+  join('')
+);
 export const base64url: BytesCoder = /* @__PURE__ */ chain(
   radix2(6),
   alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'),

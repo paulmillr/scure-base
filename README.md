@@ -43,6 +43,7 @@ import {
   base58xrp,
   base32hex,
   base32crockford,
+  base64nopad,
   base64url,
   base64urlnopad,
 } from '@scure/base';
