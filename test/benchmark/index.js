@@ -72,8 +72,6 @@ const main = () =>
         console.log();
       }
     }
-    // Log current RAM
-    bench.logMem();
   });
 
 module.exports = { main };
