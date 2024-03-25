@@ -409,9 +409,7 @@ export const base58xmr: BytesCoder = {
   },
 };
 
-export const createBase58check = /* @__PURE__ */ (
-  sha256: (data: Uint8Array) => Uint8Array
-): BytesCoder =>
+export const createBase58check = (sha256: (data: Uint8Array) => Uint8Array): BytesCoder =>
   chain(
     checksum(4, (data) => sha256(sha256(data))),
     base58
