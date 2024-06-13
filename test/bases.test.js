@@ -1,17 +1,27 @@
 const assert = require('assert');
 const {
+  base32,
+  base32nopad,
+  base32hex,
+  base32hexnopad,
+  base32crockford,
   base58,
   base58xmr,
   base58check: _base58check,
   base58xrp,
+  base64,
+  base64nopad,
+  base64url,
+  base64urlnopad,
   bech32,
   bech32m,
+  bytes,
+  str,
   utils,
 } = require('..');
 const base58check = _base58check((buf) =>
   Uint8Array.from(require('crypto').createHash('sha256').update(buf).digest())
 );
-const { base32, base32hex, base32crockford, base64, base64url, str, bytes } = require('..');
 const { Buffer } = require('buffer');
 const { should } = require('micro-should');
 const { RANDOM } = require('./utils');
@@ -76,6 +86,49 @@ should('14335 vectors, base32/64 58/hex/url/xmr, bech32/m', () => {
     assert.deepStrictEqual(coder[v.fn_name].decode(v.exp), data, 'decode ' + i);
   }
 });
+
+const TEST_BYTES = new TextEncoder().encode('@scure/base encoding / decoding');
+
+should('nopad variants: base32', () => {
+  assert.strictEqual(
+    base32nopad.encode(TEST_BYTES),
+    'IBZWG5LSMUXWEYLTMUQGK3TDN5SGS3THEAXSAZDFMNXWI2LOM4'
+  );
+
+  assert.deepStrictEqual(
+    base32nopad.decode('IBZWG5LSMUXWEYLTMUQGK3TDN5SGS3THEAXSAZDFMNXWI2LOM4'),
+    TEST_BYTES
+  );
+
+  assert.strictEqual(
+    base32hexnopad.encode(TEST_BYTES),
+    '81PM6TBICKNM4OBJCKG6ARJ3DTI6IRJ740NI0P35CDNM8QBECS'
+  );
+
+  assert.deepStrictEqual(
+    base32hexnopad.decode('81PM6TBICKNM4OBJCKG6ARJ3DTI6IRJ740NI0P35CDNM8QBECS'),
+    TEST_BYTES
+  );
+});
+
+should('nopad variants: base64', () => {
+  assert.strictEqual(base64nopad.encode(TEST_BYTES), 'QHNjdXJlL2Jhc2UgZW5jb2RpbmcgLyBkZWNvZGluZw');
+  assert.deepStrictEqual(
+    base64nopad.decode('QHNjdXJlL2Jhc2UgZW5jb2RpbmcgLyBkZWNvZGluZw'),
+    TEST_BYTES
+  );
+
+  assert.strictEqual(
+    base64urlnopad.encode(TEST_BYTES),
+    'QHNjdXJlL2Jhc2UgZW5jb2RpbmcgLyBkZWNvZGluZw'
+  );
+
+  assert.deepStrictEqual(
+    base64urlnopad.decode('QHNjdXJlL2Jhc2UgZW5jb2RpbmcgLyBkZWNvZGluZw'),
+    TEST_BYTES
+  );
+});
+
 should('utils: radix2', () => {
   const t = (bits) => {
     const coder = utils.radix2(bits);

@@ -41,7 +41,9 @@ import { base16, base32, base64, base58 } from '@scure/base';
 import {
   base58xmr,
   base58xrp,
+  base32nopad,
   base32hex,
+  base32hexnopad,
   base32crockford,
   base64nopad,
   base64url,

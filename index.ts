@@ -331,10 +331,20 @@ export const base32: BytesCoder = /* @__PURE__ */ chain(
   padding(5),
   join('')
 );
+export const base32nopad: BytesCoder = /* @__PURE__ */ chain(
+  radix2(5),
+  alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'),
+  join('')
+);
 export const base32hex: BytesCoder = /* @__PURE__ */ chain(
   radix2(5),
   alphabet('0123456789ABCDEFGHIJKLMNOPQRSTUV'),
   padding(5),
+  join('')
+);
+export const base32hexnopad: BytesCoder = /* @__PURE__ */ chain(
+  radix2(5),
+  alphabet('0123456789ABCDEFGHIJKLMNOPQRSTUV'),
   join('')
 );
 export const base32crockford: BytesCoder = /* @__PURE__ */ chain(
