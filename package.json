@@ -4,7 +4,9 @@
   "description": "Secure, audited & 0-dep implementation of base64, bech32, base58, base32 & base16",
   "files": [
     "lib/index.js",
+    "lib/index.js.map",
     "lib/esm/index.js",
+    "lib/esm/index.js.map",
     "lib/esm/package.json",
     "lib/index.d.ts",
     "lib/index.d.ts.map",
