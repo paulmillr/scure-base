@@ -1,4 +1,4 @@
-const assert = require('assert');
+const assert = require('node:assert');
 const { should } = require('micro-should');
 const { bech32, bech32m } = require('..');
 
@@ -73,8 +73,7 @@ const BECH32_INVALID_ENCODE = [
     words: [],
   },
   {
-    prefix:
-      'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzfoobar',
+    prefix: 'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzfoobar',
     words: [],
   },
   {
@@ -195,8 +194,7 @@ const BECH32M_INVALID_ENCODE = [
     words: [],
   },
   {
-    prefix:
-      'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzfoobar',
+    prefix: 'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzfoobar',
     words: [],
   },
   {

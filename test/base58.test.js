@@ -1,4 +1,4 @@
-const assert = require('assert');
+const assert = require('node:assert');
 const { should, describe } = require('micro-should');
 const { base58, base58xmr, base58check: _base58check, base58xrp } = require('..');
 const VECTORS_2 = require('./vectors/base58.json');

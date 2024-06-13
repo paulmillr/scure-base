@@ -1,4 +1,4 @@
-const assert = require('assert');
+const assert = require('node:assert');
 const { should } = require('micro-should');
 const { RANDOM, stats } = require('../test/utils');
 

@@ -1,4 +1,4 @@
-const assert = require('assert');
+const assert = require('node:assert');
 const { should } = require('micro-should');
 const { base16, base32, base32hex, base32crockford, base64, base64url } = require('..');
 

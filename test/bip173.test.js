@@ -1,4 +1,4 @@
-const { deepStrictEqual, throws } = require('assert');
+const { deepStrictEqual, throws } = require('node:assert');
 const { describe, should } = require('micro-should');
 const { bech32, bech32m, radix2 } = require('..');
 
