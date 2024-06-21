@@ -3,7 +3,7 @@
 Audited & minimal implementation of bech32, base64, base58, base32 & base16.
 
 - 🔒 [Audited](#security) by an independent security firm
-- 🔻 Tree-shaking-friendly: use only what's necessary, other code won't be included
+- 🔻 Tree-shakeable: unused code is excluded from your builds
 - 📦 ESM and common.js
 - ✍️ Written in [functional style](#design-rationale), easily composable
 - 💼 Matches specs
