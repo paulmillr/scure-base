@@ -90,7 +90,7 @@ They can't be parsed using `bech32.decodeToBytes`. Instead, do something this:
 ```ts
 const decoded = bech32.decode(address);
 // NOTE: words in bitcoin addresses contain version as first element,
-// with actual witnes program words in rest
+// with actual witness program words in rest
 // BIP-141: The value of the first push is called the "version byte".
 // The following byte vector pushed is called the "witness program".
 const [version, ...dataW] = decoded.words;
@@ -131,7 +131,7 @@ base58checksum = {
 ```
 
 But instead of creating two big functions for each specific case,
-we create them from tiny composamble building blocks:
+we create them from tiny composable building blocks:
 
 ```
 base58checksum = chain(checksum(), radix(), alphabet())
@@ -151,7 +151,7 @@ For example, you can easily encode entropy to mnemonic (BIP-39):
 ```ts
 export function getCoder(wordlist: string[]) {
   if (!Array.isArray(wordlist) || wordlist.length !== 2 ** 11 || typeof wordlist[0] !== 'string') {
-    throw new Error('Worlist: expected array of 2048 strings');
+    throw new Error('Wordlist: expected array of 2048 strings');
   }
   return mbc.chain(mbu.checksum(1, checksum), mbu.radix2(11, true), mbu.alphabet(wordlist));
 }
