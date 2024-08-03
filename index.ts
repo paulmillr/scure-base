@@ -477,8 +477,15 @@ function bechChecksum(prefix: string, words: number[], encodingConst = 1): strin
 }
 
 export interface Bech32 {
-  encode<Prefix extends string>(prefix: Prefix, words: number[] | Uint8Array, limit: number | false): `${Lowercase<Prefix>}1${string}`;
-  decode<Prefix extends string>(str: `${Prefix}1${string}`, limit?: number | false): Bech32Decoded<Prefix>;
+  encode<Prefix extends string>(
+    prefix: Prefix,
+    words: number[] | Uint8Array,
+    limit: number | false
+  ): `${Lowercase<Prefix>}1${string}`;
+  decode<Prefix extends string>(
+    str: `${Prefix}1${string}`,
+    limit?: number | false
+  ): Bech32Decoded<Prefix>;
   decodeToBytes(str: string): Bech32DecodedWithArray;
   decodeUnsafe(str: string, limit?: number | false): void | Bech32Decoded<string>;
   fromWords(to: number[]): Uint8Array;
