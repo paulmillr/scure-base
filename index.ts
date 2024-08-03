@@ -151,7 +151,7 @@ function normalize<T>(fn: (val: T) => T): Coder<T, T> {
  * Slow: O(n^2) time complexity
  * @__NO_SIDE_EFFECTS__
  */
-function convertRadix(data: number[], from: number, to: number) {
+function convertRadix(data: number[], from: number, to: number): number[] {
   // base 1 is impossible
   if (from < 2) throw new Error(`convertRadix: wrong from=${from}, base cannot be less than 2`);
   if (to < 2) throw new Error(`convertRadix: wrong to=${to}, base cannot be less than 2`);
@@ -476,10 +476,19 @@ function bechChecksum(prefix: string, words: number[], encodingConst = 1): strin
   return BECH_ALPHABET.encode(convertRadix2([chk % 2 ** 30], 30, 5, false));
 }
 
+export interface Bech32 {
+  encode<Prefix extends string>(prefix: Prefix, words: number[] | Uint8Array, limit: number | false): `${Lowercase<Prefix>}1${string}`;
+  decode<Prefix extends string>(str: `${Prefix}1${string}`, limit?: number | false): Bech32Decoded<Prefix>;
+  decodeToBytes(str: string): Bech32DecodedWithArray;
+  decodeUnsafe(str: string, limit?: number | false): void | Bech32Decoded<string>;
+  fromWords(to: number[]): Uint8Array;
+  fromWordsUnsafe(to: number[]): void | Uint8Array;
+  toWords(from: Uint8Array): number[];
+}
 /**
  * @__NO_SIDE_EFFECTS__
  */
-function genBech32(encoding: 'bech32' | 'bech32m') {
+function genBech32(encoding: 'bech32' | 'bech32m'): Bech32 {
   const ENCODING_CONST = encoding === 'bech32' ? 1 : 0x2bc830a3;
   const _words = radix2(5);
   const fromWords = _words.decode;
@@ -540,8 +549,8 @@ function genBech32(encoding: 'bech32' | 'bech32m') {
   return { encode, decode, decodeToBytes, decodeUnsafe, fromWords, fromWordsUnsafe, toWords };
 }
 
-export const bech32 = /* @__PURE__ */ genBech32('bech32');
-export const bech32m = /* @__PURE__ */ genBech32('bech32m');
+export const bech32: Bech32 = /* @__PURE__ */ genBech32('bech32');
+export const bech32m: Bech32 = /* @__PURE__ */ genBech32('bech32m');
 
 declare const TextEncoder: any;
 declare const TextDecoder: any;
