@@ -31,7 +31,9 @@ Check out [Projects using scure-base](#projects-using-scure-base).
 
 ## Usage
 
-> npm install @scure/base
+> `npm install @scure/base`
+
+> `deno add @scure/base`
 
 We support all major platforms and runtimes. The library is hybrid ESM / Common.js package.
 
