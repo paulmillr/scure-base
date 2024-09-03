@@ -5,11 +5,13 @@
   "files": [
     "lib/index.js",
     "lib/index.js.map",
-    "lib/esm/index.js",
-    "lib/esm/index.js.map",
-    "lib/esm/package.json",
     "lib/index.d.ts",
     "lib/index.d.ts.map",
+    "lib/esm/index.js",
+    "lib/esm/index.js.map",
+    "lib/esm/index.d.ts",
+    "lib/esm/index.d.ts.map",
+    "lib/esm/package.json",
     "index.ts"
   ],
   "main": "lib/index.js",
@@ -17,9 +19,8 @@
   "types": "lib/index.d.ts",
   "exports": {
     ".": {
-      "types": "./lib/index.d.ts",
       "import": "./lib/esm/index.js",
-      "default": "./lib/index.js"
+      "require": "./lib/index.js"
     }
   },
   "scripts": {
@@ -39,7 +40,7 @@
     "url": "git+https://github.com/paulmillr/scure-base.git"
   },
   "devDependencies": {
-    "@paulmillr/jsbt": "0.1.0",
+    "@paulmillr/jsbt": "0.2.1",
     "micro-should": "0.4.0",
     "prettier": "3.3.2",
     "typescript": "5.5.2"
