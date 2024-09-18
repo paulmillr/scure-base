@@ -480,12 +480,13 @@ export interface Bech32 {
   encode<Prefix extends string>(
     prefix: Prefix,
     words: number[] | Uint8Array,
-    limit: number | false
+    limit?: number | false
   ): `${Lowercase<Prefix>}1${string}`;
   decode<Prefix extends string>(
     str: `${Prefix}1${string}`,
     limit?: number | false
   ): Bech32Decoded<Prefix>;
+  encodeFromBytes(prefix: string, bytes: Uint8Array): string;
   decodeToBytes(str: string): Bech32DecodedWithArray;
   decodeUnsafe(str: string, limit?: number | false): void | Bech32Decoded<string>;
   fromWords(to: number[]): Uint8Array;
@@ -509,6 +510,7 @@ function genBech32(encoding: 'bech32' | 'bech32m'): Bech32 {
   ): `${Lowercase<Prefix>}1${string}` {
     if (typeof prefix !== 'string')
       throw new Error(`bech32.encode prefix should be string, not ${typeof prefix}`);
+    if (words instanceof Uint8Array) words = Array.from(words);
     if (!Array.isArray(words) || (words.length && typeof words[0] !== 'number'))
       throw new Error(`bech32.encode words should be array of numbers, not ${typeof words}`);
     if (prefix.length === 0) throw new TypeError(`Invalid prefix length ${prefix.length}`);
@@ -553,7 +555,20 @@ function genBech32(encoding: 'bech32' | 'bech32m'): Bech32 {
     return { prefix, words, bytes: fromWords(words) };
   }
 
-  return { encode, decode, decodeToBytes, decodeUnsafe, fromWords, fromWordsUnsafe, toWords };
+  function encodeFromBytes(prefix: string, bytes: Uint8Array) {
+    return encode(prefix, toWords(bytes));
+  }
+
+  return {
+    encode,
+    decode,
+    encodeFromBytes,
+    decodeToBytes,
+    decodeUnsafe,
+    fromWords,
+    fromWordsUnsafe,
+    toWords,
+  };
 }
 
 export const bech32: Bech32 = /* @__PURE__ */ genBech32('bech32');

@@ -383,4 +383,9 @@ should('toWords/toWordsUnsafe accept Uint8Array', () => {
   assert.deepStrictEqual(words, [0, 0, 8, 18, 4, 12, 31, 31]);
 });
 
+should('encode accepts Uint8Array', () => {
+  const bytes = new Uint8Array([0, 0, 8, 18, 4, 12, 31, 31]);
+  assert.deepStrictEqual(bech32.encode('test', bytes), 'test1qqgjyvlld2nz37');
+});
+
 if (require.main === module) should.run();
