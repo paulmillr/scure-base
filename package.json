@@ -1,6 +1,6 @@
 {
   "name": "@scure/base",
-  "version": "1.1.8",
+  "version": "1.1.9",
   "description": "Secure, audited & 0-dep implementation of base64, bech32, base58, base32 & base16",
   "files": [
     "lib/index.js",
