@@ -18,10 +18,7 @@ export interface BytesCoder extends Coder<Uint8Array, string> {
 }
 
 function isBytes(a: unknown): a is Uint8Array {
-  return (
-    a instanceof Uint8Array ||
-    (ArrayBuffer.isView(a) && a.constructor.name === 'Uint8Array')
-  );
+  return a instanceof Uint8Array || (ArrayBuffer.isView(a) && a.constructor.name === 'Uint8Array');
 }
 
 // TODO: some recusive type inference so it would check correct order of input/output inside rest?
