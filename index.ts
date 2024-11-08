@@ -20,7 +20,7 @@ export interface BytesCoder extends Coder<Uint8Array, string> {
 function isBytes(a: unknown): a is Uint8Array {
   return (
     a instanceof Uint8Array ||
-    (a != null && typeof a === 'object' && a.constructor.name === 'Uint8Array')
+    (ArrayBuffer.isView(a) && a.constructor.name === 'Uint8Array')
   );
 }
 
@@ -510,7 +510,7 @@ function genBech32(encoding: 'bech32' | 'bech32m'): Bech32 {
   ): `${Lowercase<Prefix>}1${string}` {
     if (typeof prefix !== 'string')
       throw new Error(`bech32.encode prefix should be string, not ${typeof prefix}`);
-    if (words instanceof Uint8Array) words = Array.from(words);
+    if (isBytes(words)) words = Array.from(words);
     if (!Array.isArray(words) || (words.length && typeof words[0] !== 'number'))
       throw new Error(`bech32.encode words should be array of numbers, not ${typeof words}`);
     if (prefix.length === 0) throw new TypeError(`Invalid prefix length ${prefix.length}`);
