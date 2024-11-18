@@ -21,6 +21,12 @@ function isBytes(a: unknown): a is Uint8Array {
   return a instanceof Uint8Array || (ArrayBuffer.isView(a) && a.constructor.name === 'Uint8Array');
 }
 
+function isArrayOf(type: string, arr: any[]) {
+  if (!Array.isArray(arr)) return false;
+  if (arr.length === 0) return true;
+  return typeof arr[0] === type;
+}
+
 // TODO: some recusive type inference so it would check correct order of input/output inside rest?
 // like <string, number>, <number, bytes>, <bytes, float>
 type Chain = [Coder<any, any>, ...Coder<any, any>[]];
@@ -51,32 +57,33 @@ function chain<T extends Chain & AsChain<T>>(...args: T): Coder<Input<First<T>>,
   return { encode, decode };
 }
 
-type Alphabet = string[] | string;
-
 /**
  * Encodes integer radix representation to array of strings using alphabet and back
  * @__NO_SIDE_EFFECTS__
  */
-function alphabet(alphabet: Alphabet): Coder<number[], string[]> {
+function alphabet(letters: string): Coder<number[], string[]> {
+  if (typeof letters !== 'string') throw new Error('invalid alphabet');
+  const indexes = Object.fromEntries(letters.split('').map((l, i) => [l, i]));
   return {
     encode: (digits: number[]) => {
-      if (!Array.isArray(digits) || (digits.length && typeof digits[0] !== 'number'))
+      if (!isArrayOf('number', digits))
         throw new Error('alphabet.encode input should be an array of numbers');
       return digits.map((i) => {
         assertNumber(i);
-        if (i < 0 || i >= alphabet.length)
-          throw new Error(`Digit index outside alphabet: ${i} (alphabet: ${alphabet.length})`);
-        return alphabet[i]!;
+        if (i < 0 || i >= letters.length)
+          throw new Error(`Digit index outside alphabet: ${i} (alphabet: ${letters.length})`);
+        return letters[i]!;
       });
     },
     decode: (input: string[]) => {
-      if (!Array.isArray(input) || (input.length && typeof input[0] !== 'string'))
+      if (!isArrayOf('string', input))
         throw new Error('alphabet.decode input should be array of strings');
       return input.map((letter) => {
         if (typeof letter !== 'string')
           throw new Error(`alphabet.decode: not string element=${letter}`);
-        const index = alphabet.indexOf(letter);
-        if (index === -1) throw new Error(`Unknown letter: "${letter}". Allowed: ${alphabet}`);
+        const index = indexes[letter];
+        if (index === undefined)
+          throw new Error(`Unknown letter: "${letter}". Allowed: ${letters}`);
         return index;
       });
     },
@@ -90,7 +97,7 @@ function join(separator = ''): Coder<string[], string> {
   if (typeof separator !== 'string') throw new Error('join separator should be string');
   return {
     encode: (from) => {
-      if (!Array.isArray(from) || (from.length && typeof from[0] !== 'string'))
+      if (!isArrayOf('string', from))
         throw new Error('join.encode input should be array of strings');
       for (let i of from)
         if (typeof i !== 'string') throw new Error(`join.encode: non-string input=${i}`);
@@ -112,7 +119,7 @@ function padding(bits: number, chr = '='): Coder<string[], string[]> {
   if (typeof chr !== 'string') throw new Error('padding chr should be string');
   return {
     encode(data: string[]): string[] {
-      if (!Array.isArray(data) || (data.length && typeof data[0] !== 'string'))
+      if (!isArrayOf('string', data))
         throw new Error('padding.encode input should be array of strings');
       for (let i of data)
         if (typeof i !== 'string') throw new Error(`padding.encode: non-string input=${i}`);
@@ -120,7 +127,7 @@ function padding(bits: number, chr = '='): Coder<string[], string[]> {
       return data;
     },
     decode(input: string[]): string[] {
-      if (!Array.isArray(input) || (input.length && typeof input[0] !== 'string'))
+      if (!isArrayOf('string', input))
         throw new Error('padding.encode input should be array of strings');
       for (let i of input)
         if (typeof i !== 'string') throw new Error(`padding.decode: non-string input=${i}`);
@@ -190,9 +197,14 @@ function convertRadix(data: number[], from: number, to: number): number[] {
   return res.reverse();
 }
 
-const gcd = /* @__NO_SIDE_EFFECTS__ */ (a: number, b: number): number => (!b ? a : gcd(b, a % b));
+const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
 const radix2carry = /*@__NO_SIDE_EFFECTS__ */ (from: number, to: number) =>
   from + (to - gcd(from, to));
+const powers: number[] = /* @__PURE__ */ (() => {
+  let res = [];
+  for (let i = 0; i < 40; i++) res.push(2 ** i);
+  return res;
+})();
 /**
  * Implemented with numbers, because BigInt is 5x slower
  * @__NO_SIDE_EFFECTS__
@@ -208,16 +220,19 @@ function convertRadix2(data: number[], from: number, to: number, padding: boolea
   }
   let carry = 0;
   let pos = 0; // bitwise position in current element
-  const mask = 2 ** to - 1;
+  const max = powers[from]!;
+  const mask = powers[to]! - 1;
   const res: number[] = [];
   for (const n of data) {
     assertNumber(n);
-    if (n >= 2 ** from) throw new Error(`convertRadix2: invalid data word=${n} from=${from}`);
+    if (n >= max) throw new Error(`convertRadix2: invalid data word=${n} from=${from}`);
     carry = (carry << from) | n;
     if (pos + from > 32) throw new Error(`convertRadix2: carry overflow pos=${pos} from=${from}`);
     pos += from;
     for (; pos >= to; pos -= to) res.push(((carry >> (pos - to)) & mask) >>> 0);
-    carry &= 2 ** pos - 1; // clean carry, otherwise it will cause overflow
+    const pow = powers[pos];
+    if (pow === undefined) throw new Error('invalid carry');
+    carry &= pow - 1; // clean carry, otherwise it will cause overflow
   }
   carry = (carry << (to - pos)) & mask;
   if (!padding && pos >= from) throw new Error('Excess padding');
@@ -237,7 +252,7 @@ function radix(num: number): Coder<Uint8Array, number[]> {
       return convertRadix(Array.from(bytes), 2 ** 8, num);
     },
     decode: (digits: number[]) => {
-      if (!Array.isArray(digits) || (digits.length && typeof digits[0] !== 'number'))
+      if (!isArrayOf('number', digits))
         throw new Error('radix.decode input should be array of numbers');
       return Uint8Array.from(convertRadix(digits, num, 2 ** 8));
     },
@@ -260,7 +275,7 @@ function radix2(bits: number, revPadding = false): Coder<Uint8Array, number[]> {
       return convertRadix2(Array.from(bytes), 8, bits, !revPadding);
     },
     decode: (digits: number[]) => {
-      if (!Array.isArray(digits) || (digits.length && typeof digits[0] !== 'number'))
+      if (!isArrayOf('number', digits))
         throw new Error('radix2.decode input should be array of numbers');
       return Uint8Array.from(convertRadix2(digits, bits, 8, revPadding));
     },
@@ -470,7 +485,7 @@ function bechChecksum(prefix: string, words: number[], encodingConst = 1): strin
   for (let v of words) chk = bech32Polymod(chk) ^ v;
   for (let i = 0; i < 6; i++) chk = bech32Polymod(chk);
   chk ^= encodingConst;
-  return BECH_ALPHABET.encode(convertRadix2([chk % 2 ** 30], 30, 5, false));
+  return BECH_ALPHABET.encode(convertRadix2([chk % powers[30]!], 30, 5, false));
 }
 
 export interface Bech32 {
@@ -508,7 +523,7 @@ function genBech32(encoding: 'bech32' | 'bech32m'): Bech32 {
     if (typeof prefix !== 'string')
       throw new Error(`bech32.encode prefix should be string, not ${typeof prefix}`);
     if (isBytes(words)) words = Array.from(words);
-    if (!Array.isArray(words) || (words.length && typeof words[0] !== 'number'))
+    if (!isArrayOf('number', words))
       throw new Error(`bech32.encode words should be array of numbers, not ${typeof words}`);
     if (prefix.length === 0) throw new TypeError(`Invalid prefix length ${prefix.length}`);
     const actualLength = prefix.length + 7 + words.length;
