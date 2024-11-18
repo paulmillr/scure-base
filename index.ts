@@ -1,9 +1,6 @@
 /*! scure-base - MIT License (c) 2022 Paul Miller (paulmillr.com) */
 
 // Utilities
-/**
- * @__NO_SIDE_EFFECTS__
- */
 export function assertNumber(n: number) {
   if (!Number.isSafeInteger(n)) throw new Error(`Wrong integer: ${n}`);
 }
@@ -43,9 +40,6 @@ type AsChain<C extends Chain, Rest = Tail<C>> = {
   [K in keyof C]: Coder<Input<C[K]>, Input<K extends keyof Rest ? Rest[K] : any>>;
 };
 
-/**
- * @__NO_SIDE_EFFECTS__
- */
 function chain<T extends Chain & AsChain<T>>(...args: T): Coder<Input<First<T>>, Output<Last<T>>> {
   const id = (a: any) => a;
   // Wrap call in closure so JIT can inline calls
@@ -59,7 +53,6 @@ function chain<T extends Chain & AsChain<T>>(...args: T): Coder<Input<First<T>>,
 
 /**
  * Encodes integer radix representation to array of strings using alphabet and back
- * @__NO_SIDE_EFFECTS__
  */
 function alphabet(letters: string): Coder<number[], string[]> {
   if (typeof letters !== 'string') throw new Error('invalid alphabet');
@@ -90,9 +83,6 @@ function alphabet(letters: string): Coder<number[], string[]> {
   };
 }
 
-/**
- * @__NO_SIDE_EFFECTS__
- */
 function join(separator = ''): Coder<string[], string> {
   if (typeof separator !== 'string') throw new Error('join separator should be string');
   return {
@@ -112,7 +102,6 @@ function join(separator = ''): Coder<string[], string> {
 
 /**
  * Pad strings array so it has integer number of bits
- * @__NO_SIDE_EFFECTS__
  */
 function padding(bits: number, chr = '='): Coder<string[], string[]> {
   assertNumber(bits);
@@ -143,9 +132,6 @@ function padding(bits: number, chr = '='): Coder<string[], string[]> {
   };
 }
 
-/**
- * @__NO_SIDE_EFFECTS__
- */
 function normalize<T>(fn: (val: T) => T): Coder<T, T> {
   if (typeof fn !== 'function') throw new Error('normalize fn should be function');
   return { encode: (from: T) => from, decode: (to: T) => fn(to) };
@@ -153,7 +139,6 @@ function normalize<T>(fn: (val: T) => T): Coder<T, T> {
 
 /**
  * Slow: O(n^2) time complexity
- * @__NO_SIDE_EFFECTS__
  */
 function convertRadix(data: number[], from: number, to: number): number[] {
   // base 1 is impossible
@@ -207,7 +192,6 @@ const powers: number[] = /* @__PURE__ */ (() => {
 })();
 /**
  * Implemented with numbers, because BigInt is 5x slower
- * @__NO_SIDE_EFFECTS__
  */
 function convertRadix2(data: number[], from: number, to: number, padding: boolean): number[] {
   if (!Array.isArray(data)) throw new Error('convertRadix2: data should be array');
@@ -241,9 +225,6 @@ function convertRadix2(data: number[], from: number, to: number, padding: boolea
   return res;
 }
 
-/**
- * @__NO_SIDE_EFFECTS__
- */
 function radix(num: number): Coder<Uint8Array, number[]> {
   assertNumber(num);
   return {
@@ -262,7 +243,6 @@ function radix(num: number): Coder<Uint8Array, number[]> {
 /**
  * If both bases are power of same number (like `2**8 <-> 2**64`),
  * there is a linear algorithm. For now we have implementation for power-of-two bases only.
- * @__NO_SIDE_EFFECTS__
  */
 function radix2(bits: number, revPadding = false): Coder<Uint8Array, number[]> {
   assertNumber(bits);
@@ -283,9 +263,6 @@ function radix2(bits: number, revPadding = false): Coder<Uint8Array, number[]> {
 }
 
 type ArgumentTypes<F extends Function> = F extends (...args: infer A) => any ? A : never;
-/**
- * @__NO_SIDE_EFFECTS__
- */
 function unsafeWrapper<T extends (...args: any) => any>(fn: T) {
   if (typeof fn !== 'function') throw new Error('unsafeWrapper fn should be function');
   return function (...args: ArgumentTypes<T>): ReturnType<T> | void {
@@ -295,9 +272,6 @@ function unsafeWrapper<T extends (...args: any) => any>(fn: T) {
   };
 }
 
-/**
- * @__NO_SIDE_EFFECTS__
- */
 function checksum(
   len: number,
   fn: (data: Uint8Array) => Uint8Array
@@ -457,9 +431,6 @@ const BECH_ALPHABET: Coder<number[], string> = /* @__PURE__ */ chain(
 );
 
 const POLYMOD_GENERATORS = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
-/**
- * @__NO_SIDE_EFFECTS__
- */
 function bech32Polymod(pre: number): number {
   const b = pre >> 25;
   let chk = (pre & 0x1ffffff) << 5;
@@ -469,9 +440,6 @@ function bech32Polymod(pre: number): number {
   return chk;
 }
 
-/**
- * @__NO_SIDE_EFFECTS__
- */
 function bechChecksum(prefix: string, words: number[], encodingConst = 1): string {
   const len = prefix.length;
   let chk = 1;
@@ -505,9 +473,6 @@ export interface Bech32 {
   fromWordsUnsafe(to: number[]): void | Uint8Array;
   toWords(from: Uint8Array): number[];
 }
-/**
- * @__NO_SIDE_EFFECTS__
- */
 function genBech32(encoding: 'bech32' | 'bech32m'): Bech32 {
   const ENCODING_CONST = encoding === 'bech32' ? 1 : 0x2bc830a3;
   const _words = radix2(5);
