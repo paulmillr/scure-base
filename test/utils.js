@@ -1,16 +1,4 @@
-const crypto = require('crypto');
-
-function concatBytes(...arrays) {
-  if (arrays.length === 1) return arrays[0];
-  const length = arrays.reduce((a, arr) => a + arr.length, 0);
-  const result = new Uint8Array(length);
-  for (let i = 0, pad = 0; i < arrays.length; i++) {
-    const arr = arrays[i];
-    result.set(arr, pad);
-    pad += arr.length;
-  }
-  return result;
-}
+const { createHash } = require('crypto');
 
 function median(list) {
   const values = list.slice().sort((a, b) => a - b);
@@ -48,7 +36,52 @@ function stats(list) {
 let start = new Uint8Array([1, 2, 3, 4, 5]);
 let RANDOM = new Uint8Array();
 // Fill with random data (1MB)
+function concatBytes(a, b) {
+  return new Uint8Array(Buffer.concat([a, b]));
+}
 for (let i = 0; i < 32 * 1024; i++)
-  RANDOM = concatBytes(RANDOM, (start = crypto.createHash('sha256').update(start).digest()));
+  RANDOM = concatBytes(RANDOM, (start = createHash('sha256').update(start).digest()));
 
-module.exports = { concatBytes, RANDOM, stats };
+const getTypeTests = () => [
+  [0, '0'],
+  [123, '123'],
+  [123.456, '123.456'],
+  [-5n, '-5n'],
+  [1.0000000000001, '1.0000000000001'],
+  [10e9999, '10e9999'],
+  [Infinity, 'Infinity'],
+  [-Infinity, '-Infinity'],
+  [NaN, 'NaN'],
+  [true, 'true'],
+  [false, 'false'],
+  [null, 'null'],
+  [undefined, 'undefined'],
+  ['', '""'],
+  ['1', '"1"'],
+  ['1 ', '"1 "'],
+  [' 1', '" 1"'],
+  ['0xbe', '"0xbe"'],
+  ['keys', '"keys"'],
+  [new String('1234'), 'String(1234)'],
+  [new Uint8Array([]), 'ui8a([])'],
+  [new Uint8Array([0]), 'ui8a([0])'],
+  [new Uint8Array([1]), 'ui8a([1])'],
+  // [new Uint8Array(32).fill(1), 'ui8a(32*[1])'],
+  [new Uint8Array(4096).fill(1), 'ui8a(4096*[1])'],
+  [new Uint16Array(32).fill(1), 'ui16a(32*[1])'],
+  [new Uint32Array(32).fill(1), 'ui32a(32*[1])'],
+  [new Float32Array(32), 'f32a(32*0)'],
+  [new BigUint64Array(32).fill(1n), 'ui64a(32*[1])'],
+  [new ArrayBuffer(100), 'arraybuf'],
+  [new DataView(new ArrayBuffer(100)), 'dataview'],
+  [{ constructor: { name: 'Uint8Array' }, length: '1e30' }, 'fake(ui8a)'],
+  [Array(32).fill(1), 'array'],
+  [new Set([1, 2, 3]), 'set'],
+  [new Map([['aa', 'bb']]), 'map'],
+  [() => {}, 'fn'],
+  [async () => {}, 'fn async'],
+  [class Test {}, 'class'],
+  [Symbol.for('a'), 'symbol("a")'],
+];
+
+module.exports = { concatBytes, RANDOM, stats, getTypeTests };
