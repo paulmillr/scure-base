@@ -548,12 +548,21 @@ function genBech32(encoding: 'bech32' | 'bech32m'): Bech32 {
   };
 }
 
+/**
+ * Low-level bech32 operations.
+ */
 export const bech32: Bech32 = /* @__PURE__ */ genBech32('bech32');
 export const bech32m: Bech32 = /* @__PURE__ */ genBech32('bech32m');
 
 declare const TextEncoder: any;
 declare const TextDecoder: any;
 
+/**
+ * UTF-8-to-byte decoder. Uses built-in TextDecoder / TextEncoder.
+ * @example
+ * const b = utf8.decode("hey"); // => new Uint8Array([ 104, 101, 121 ])
+ * const str = utf8.encode(b); // "hey"
+ */
 export const utf8: BytesCoder = {
   encode: (data) => new TextDecoder().decode(data),
   decode: (str) => new TextEncoder().encode(str),
