@@ -227,15 +227,16 @@ function convertRadix2(data: number[], from: number, to: number, padding: boolea
 
 function radix(num: number): Coder<Uint8Array, number[]> {
   assertNumber(num);
+  const _256 = 2 ** 8;
   return {
     encode: (bytes: Uint8Array) => {
       if (!isBytes(bytes)) throw new Error('radix.encode input should be Uint8Array');
-      return convertRadix(Array.from(bytes), 2 ** 8, num);
+      return convertRadix(Array.from(bytes), _256, num);
     },
     decode: (digits: number[]) => {
       if (!isArrayOf('number', digits))
         throw new Error('radix.decode input should be array of numbers');
-      return Uint8Array.from(convertRadix(digits, num, 2 ** 8));
+      return Uint8Array.from(convertRadix(digits, num, _256));
     },
   };
 }
@@ -306,6 +307,10 @@ export const utils = {
 
 // RFC 4648 aka RFC 3548
 // ---------------------
+
+/**
+ * base16 encoding.
+ */
 export const base16: BytesCoder = /* @__PURE__ */ chain(
   radix2(4),
   alphabet('0123456789ABCDEF'),
@@ -339,12 +344,21 @@ export const base32crockford: BytesCoder = /* @__PURE__ */ chain(
   join(''),
   normalize((s: string) => s.toUpperCase().replace(/O/g, '0').replace(/[IL]/g, '1'))
 );
+/**
+ * base64 with padding. For no padding, use `base64nopad`.
+ * @example
+ * const b = base64.decode('A951'); // Uint8Array.from([ 3, 222, 117 ])
+ * base64.encode(b); // 'A951'
+ */
 export const base64: BytesCoder = /* @__PURE__ */ chain(
   radix2(6),
   alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'),
   padding(6),
   join('')
 );
+/**
+ * base64 without padding.
+ */
 export const base64nopad: BytesCoder = /* @__PURE__ */ chain(
   radix2(6),
   alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'),
@@ -366,6 +380,10 @@ export const base64urlnopad: BytesCoder = /* @__PURE__ */ chain(
 // -----------
 const genBase58 = (abc: string) => chain(radix(58), alphabet(abc), join(''));
 
+/**
+ * Base58: base64 without characters +, /, 0, O, I, l.
+ * Quadratic (O(n^2)) - so, can't be used on large inputs.
+ */
 export const base58: BytesCoder = /* @__PURE__ */ genBase58(
   '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 );
@@ -376,11 +394,14 @@ export const base58xrp: BytesCoder = /* @__PURE__ */ genBase58(
   'rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz'
 );
 
-// xmr ver is done in 8-byte blocks (which equals 11 chars in decoding). Last (non-full) block padded with '1' to size in XMR_BLOCK_LEN.
-// Block encoding significantly reduces quadratic complexity of base58.
-
 // Data len (index) -> encoded block len
 const XMR_BLOCK_LEN = [0, 2, 3, 5, 6, 7, 9, 10, 11];
+
+/**
+ * XMR version of base58.
+ * Done in 8-byte blocks (which equals 11 chars in decoding). Last (non-full) block padded with '1' to size in XMR_BLOCK_LEN.
+ * Block encoding significantly reduces quadratic complexity of base58.
+ */
 export const base58xmr: BytesCoder = {
   encode(data: Uint8Array) {
     let res = '';
@@ -410,7 +431,11 @@ export const createBase58check = (sha256: (data: Uint8Array) => Uint8Array): Byt
     checksum(4, (data) => sha256(sha256(data))),
     base58
   );
-// legacy export, bad name
+
+/**
+ * Use `createBase58check` instead.
+ * @deprecated
+ */
 export const base58check = createBase58check;
 
 // Bech32 code
@@ -549,7 +574,7 @@ function genBech32(encoding: 'bech32' | 'bech32m'): Bech32 {
 }
 
 /**
- * Low-level bech32 operations.
+ * Low-level bech32 operations. Operates on words.
  */
 export const bech32: Bech32 = /* @__PURE__ */ genBech32('bech32');
 export const bech32m: Bech32 = /* @__PURE__ */ genBech32('bech32m');
@@ -568,6 +593,12 @@ export const utf8: BytesCoder = {
   decode: (str) => new TextEncoder().encode(str),
 };
 
+/**
+ * hex string decoder.
+ * @example
+ * const b = hex.decode("0102ff"); // => new Uint8Array([ 1, 2, 255 ])
+ * const str = hex.encode(b); // "0102ff"
+ */
 export const hex: BytesCoder = /* @__PURE__ */ chain(
   radix2(4),
   alphabet('0123456789abcdef'),
