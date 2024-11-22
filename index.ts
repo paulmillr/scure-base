@@ -79,19 +79,22 @@ function chain<T extends Chain & AsChain<T>>(...args: T): Coder<Input<First<T>>,
  * Could also be array of strings.
  */
 function alphabet(letters: string | string[]): Coder<number[], string[]> {
-  const arr = typeof letters === 'string' ? letters.split('') : letters;
-  const maxLen = arr.length;
-  astrArr('alphabet', arr);
-  const indexes = new Map(arr.map((l, i) => [l, i]));
+  // mapping 1 to "b"
+  const lettersA = typeof letters === 'string' ? letters.split('') : letters;
+  const len = lettersA.length;
+  astrArr('alphabet', lettersA);
+
+  // mapping "b" to 1
+  const indexes = new Map(lettersA.map((l, i) => [l, i]));
   return {
     encode: (digits: number[]) => {
       if (!Array.isArray(digits)) throw new Error('array expected');
       return digits.map((i) => {
-        if (!Number.isSafeInteger(i) || i < 0 || i >= maxLen)
+        if (!Number.isSafeInteger(i) || i < 0 || i >= len)
           throw new Error(
             `alphabet.encode: digit index outside alphabet "${i}". Allowed: ${letters}`
           );
-        return arr[i]!;
+        return lettersA[i]!;
       });
     },
     decode: (input: string[]): number[] => {
@@ -182,8 +185,9 @@ function convertRadix(data: number[], from: number, to: number): number[] {
       ) {
         throw new Error('convertRadix: carry overflow');
       }
+      let div = digitBase / to;
       carry = digitBase % to;
-      const rounded = Math.floor(digitBase / to);
+      const rounded = Math.floor(div);
       digits[i] = rounded;
       if (!Number.isSafeInteger(rounded) || rounded * to + carry !== digitBase)
         throw new Error('convertRadix: carry overflow');
@@ -236,7 +240,7 @@ function convertRadix2(data: number[], from: number, to: number, padding: boolea
   }
   carry = (carry << (to - pos)) & mask;
   if (!padding && pos >= from) throw new Error('Excess padding');
-  if (!padding && carry) throw new Error(`Non-zero padding: ${carry}`);
+  if (!padding && carry > 0) throw new Error(`Non-zero padding: ${carry}`);
   if (padding && pos > 0) res.push(carry >>> 0);
   return res;
 }
