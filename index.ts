@@ -78,7 +78,7 @@ function chain<T extends Chain & AsChain<T>>(...args: T): Coder<Input<First<T>>,
  * Encodes integer radix representation to array of strings using alphabet and back.
  * Could also be array of strings.
  */
-function alphabet(letters: string): Coder<number[], string[]> {
+function alphabet(letters: string | string[]): Coder<number[], string[]> {
   const arr = typeof letters === 'string' ? letters.split('') : letters;
   const maxLen = arr.length;
   astrArr('alphabet', arr);
