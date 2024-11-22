@@ -1,10 +1,10 @@
 import { assertEquals, assertThrows } from 'https://deno.land/std@0.146.0/testing/asserts.ts';
-import { decode } from 'https://deno.land/std/encoding/hex.ts';
-import BASE58_VECTORS from './vectors/base58.json' assert { type: 'json' };
-import BASE58_XMR_VECTORS from './vectors/base58_xmr.json' assert { type: 'json' };
+import { decodeHex } from 'https://deno.land/std/encoding/hex.ts';
+import BASE58_VECTORS from './vectors/base58.json' with { type: 'json' };
+import BASE58_XMR_VECTORS from './vectors/base58_xmr.json' with { type: 'json' };
 import { base58, base58xmr, utils } from '../mod.ts';
 
-const hexToArray = (hex: string) => decode(new TextEncoder().encode(hex));
+const hexToArray = (hex: string) => decodeHex(hex);
 
 Deno.test('deno: base58: vectors', () => {
   for (let i = 0; i < BASE58_VECTORS.length; i++) {
