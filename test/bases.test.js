@@ -187,6 +187,10 @@ should('utils: radix', () => {
 
 should('utils: alphabet', () => {
   const a = utils.alphabet('12345');
+  const ab = utils.alphabet(['11', '2', '3', '4', '5']);
+  assert.deepStrictEqual(a.encode([1]), ['2']);
+  assert.deepStrictEqual(ab.encode([0]), ['11']);
+  assert.deepStrictEqual(a.encode([2]), ab.encode([2]));
   assert.throws(() => a.encode([1, 2, true, 3]));
   assert.throws(() => a.decode(['1', 2, true]));
   assert.throws(() => a.decode(['1', 2]));

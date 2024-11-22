@@ -52,11 +52,14 @@ function chain<T extends Chain & AsChain<T>>(...args: T): Coder<Input<First<T>>,
 }
 
 /**
- * Encodes integer radix representation to array of strings using alphabet and back
+ * Encodes integer radix representation to array of strings using alphabet and back.
+ * Could also be array of strings.
  */
 function alphabet(letters: string): Coder<number[], string[]> {
-  if (typeof letters !== 'string') throw new Error('invalid alphabet');
-  const indexes = Object.fromEntries(letters.split('').map((l, i) => [l, i]));
+  const lettersArr = typeof letters === 'string' ? letters.split('') : letters;
+  if (!isArrayOf('string', lettersArr))
+    throw new Error('alphabet expects string or array of strings');
+  const indexes = Object.fromEntries(lettersArr.map((l, i) => [l, i]));
   return {
     encode: (digits: number[]) => {
       if (!isArrayOf('number', digits))
