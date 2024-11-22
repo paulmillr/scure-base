@@ -194,6 +194,7 @@ should('utils: alphabet', () => {
   assert.throws(() => a.encode([1, 2, true, 3]));
   assert.throws(() => a.decode(['1', 2, true]));
   assert.throws(() => a.decode(['1', 2]));
+  assert.throws(() => a.decode(['toString']));
 });
 
 should('utils: join', () => {

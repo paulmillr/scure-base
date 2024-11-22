@@ -18,10 +18,33 @@ function isBytes(a: unknown): a is Uint8Array {
   return a instanceof Uint8Array || (ArrayBuffer.isView(a) && a.constructor.name === 'Uint8Array');
 }
 
-function isArrayOf(type: string, arr: any[]) {
+function isArrayOf(type: 'string' | 'number', arr: any[]) {
   if (!Array.isArray(arr)) return false;
   if (arr.length === 0) return true;
-  return typeof arr[0] === type;
+  if (type === 'string') return arr.every((item) => typeof item === 'string');
+  if (type === 'number') return arr.every((item) => Number.isSafeInteger(item));
+  return false;
+}
+
+// no abytes: seems to have 10% slowdown. Why?!
+
+function afn(input: Function): input is Function {
+  if (typeof input !== 'function') throw new Error('function expected');
+  return true;
+}
+
+function astr(label: string, input: unknown): input is string {
+  if (typeof input !== 'string') throw new Error(`${label}: string expected`);
+  return true;
+}
+
+function astrArr(label: string, input: string[]): input is string[] {
+  if (!isArrayOf('string', input)) throw new Error(`${label}: array of strings expected`);
+  return true;
+}
+function anumArr(label: string, input: number[]): input is number[] {
+  if (!isArrayOf('number', input)) throw new Error(`${label}: array of strings expected`);
+  return true;
 }
 
 // TODO: some recusive type inference so it would check correct order of input/output inside rest?
@@ -56,48 +79,42 @@ function chain<T extends Chain & AsChain<T>>(...args: T): Coder<Input<First<T>>,
  * Could also be array of strings.
  */
 function alphabet(letters: string): Coder<number[], string[]> {
-  const lettersArr = typeof letters === 'string' ? letters.split('') : letters;
-  if (!isArrayOf('string', lettersArr))
-    throw new Error('alphabet expects string or array of strings');
-  const indexes = Object.fromEntries(lettersArr.map((l, i) => [l, i]));
+  const arr = typeof letters === 'string' ? letters.split('') : letters;
+  const maxLen = arr.length;
+  astrArr('alphabet', arr);
+  const indexes = new Map(arr.map((l, i) => [l, i]));
   return {
     encode: (digits: number[]) => {
-      if (!isArrayOf('number', digits))
-        throw new Error('alphabet.encode input should be an array of numbers');
+      if (!Array.isArray(digits)) throw new Error('array expected');
       return digits.map((i) => {
-        assertNumber(i);
-        if (i < 0 || i >= letters.length)
-          throw new Error(`Digit index outside alphabet: ${i} (alphabet: ${letters.length})`);
-        return letters[i]!;
+        if (!Number.isSafeInteger(i) || i < 0 || i >= maxLen)
+          throw new Error(
+            `alphabet.encode: digit index outside alphabet "${i}". Allowed: ${letters}`
+          );
+        return arr[i]!;
       });
     },
-    decode: (input: string[]) => {
-      if (!isArrayOf('string', input))
-        throw new Error('alphabet.decode input should be array of strings');
+    decode: (input: string[]): number[] => {
+      if (!Array.isArray(input)) throw new Error('array expected');
       return input.map((letter) => {
-        if (typeof letter !== 'string')
-          throw new Error(`alphabet.decode: not string element=${letter}`);
-        const index = indexes[letter];
-        if (index === undefined)
-          throw new Error(`Unknown letter: "${letter}". Allowed: ${letters}`);
-        return index;
+        astr('alphabet.decode', letter);
+        const i = indexes.get(letter);
+        if (i === undefined) throw new Error(`Unknown letter: "${letter}". Allowed: ${letters}`);
+        return i;
       });
     },
   };
 }
 
 function join(separator = ''): Coder<string[], string> {
-  if (typeof separator !== 'string') throw new Error('join separator should be string');
+  astr('join', separator);
   return {
     encode: (from) => {
-      if (!isArrayOf('string', from))
-        throw new Error('join.encode input should be array of strings');
-      for (let i of from)
-        if (typeof i !== 'string') throw new Error(`join.encode: non-string input=${i}`);
+      astrArr('join.decode', from);
       return from.join(separator);
     },
     decode: (to) => {
-      if (typeof to !== 'string') throw new Error('join.decode input should be string');
+      astr('join.decode', to);
       return to.split(separator);
     },
   };
@@ -108,27 +125,22 @@ function join(separator = ''): Coder<string[], string> {
  */
 function padding(bits: number, chr = '='): Coder<string[], string[]> {
   assertNumber(bits);
-  if (typeof chr !== 'string') throw new Error('padding chr should be string');
+  astr('padding', chr);
   return {
     encode(data: string[]): string[] {
-      if (!isArrayOf('string', data))
-        throw new Error('padding.encode input should be array of strings');
-      for (let i of data)
-        if (typeof i !== 'string') throw new Error(`padding.encode: non-string input=${i}`);
+      astrArr('padding.encode', data);
       while ((data.length * bits) % 8) data.push(chr);
       return data;
     },
     decode(input: string[]): string[] {
-      if (!isArrayOf('string', input))
-        throw new Error('padding.encode input should be array of strings');
-      for (let i of input)
-        if (typeof i !== 'string') throw new Error(`padding.decode: non-string input=${i}`);
+      astrArr('padding.encode', input);
       let end = input.length;
       if ((end * bits) % 8)
-        throw new Error('Invalid padding: string should have whole number of bytes');
+        throw new Error('padding: invalid, string should have whole number of bytes');
       for (; end > 0 && input[end - 1] === chr; end--) {
-        if (!(((end - 1) * bits) % 8))
-          throw new Error('Invalid padding: string has too much padding');
+        const last = end - 1;
+        const byte = last * bits;
+        if (byte % 8 === 0) throw new Error('padding: invalid, string has too much padding');
       }
       return input.slice(0, end);
     },
@@ -136,7 +148,7 @@ function padding(bits: number, chr = '='): Coder<string[], string[]> {
 }
 
 function normalize<T>(fn: (val: T) => T): Coder<T, T> {
-  if (typeof fn !== 'function') throw new Error('normalize fn should be function');
+  afn(fn);
   return { encode: (from: T) => from, decode: (to: T) => fn(to) };
 }
 
@@ -156,10 +168,11 @@ function convertRadix(data: number[], from: number, to: number): number[] {
     assertNumber(d);
     if (d < 0 || d >= from) throw new Error(`Wrong integer: ${d}`);
   });
+  const dlen = digits.length;
   while (true) {
     let carry = 0;
     let done = true;
-    for (let i = pos; i < digits.length; i++) {
+    for (let i = pos; i < dlen; i++) {
       const digit = digits[i]!;
       const digitBase = from * carry + digit;
       if (
@@ -237,8 +250,7 @@ function radix(num: number): Coder<Uint8Array, number[]> {
       return convertRadix(Array.from(bytes), _256, num);
     },
     decode: (digits: number[]) => {
-      if (!isArrayOf('number', digits))
-        throw new Error('radix.decode input should be array of numbers');
+      anumArr('radix.decode', digits);
       return Uint8Array.from(convertRadix(digits, num, _256));
     },
   };
@@ -259,8 +271,7 @@ function radix2(bits: number, revPadding = false): Coder<Uint8Array, number[]> {
       return convertRadix2(Array.from(bytes), 8, bits, !revPadding);
     },
     decode: (digits: number[]) => {
-      if (!isArrayOf('number', digits))
-        throw new Error('radix2.decode input should be array of numbers');
+      anumArr('radix2.decode', digits);
       return Uint8Array.from(convertRadix2(digits, bits, 8, revPadding));
     },
   };
@@ -268,7 +279,7 @@ function radix2(bits: number, revPadding = false): Coder<Uint8Array, number[]> {
 
 type ArgumentTypes<F extends Function> = F extends (...args: infer A) => any ? A : never;
 function unsafeWrapper<T extends (...args: any) => any>(fn: T) {
-  if (typeof fn !== 'function') throw new Error('unsafeWrapper fn should be function');
+  afn(fn);
   return function (...args: ArgumentTypes<T>): ReturnType<T> | void {
     try {
       return fn.apply(null, args);
@@ -281,7 +292,7 @@ function checksum(
   fn: (data: Uint8Array) => Uint8Array
 ): Coder<Uint8Array, Uint8Array> {
   assertNumber(len);
-  if (typeof fn !== 'function') throw new Error('checksum fn should be function');
+  afn(fn);
   return {
     encode(data: Uint8Array) {
       if (!isBytes(data)) throw new Error('checksum.encode: input should be Uint8Array');
@@ -513,13 +524,12 @@ function genBech32(encoding: 'bech32' | 'bech32m'): Bech32 {
     words: number[] | Uint8Array,
     limit: number | false = 90
   ): `${Lowercase<Prefix>}1${string}` {
-    if (typeof prefix !== 'string')
-      throw new Error(`bech32.encode prefix should be string, not ${typeof prefix}`);
+    astr('bech32.encode prefix', prefix);
     if (isBytes(words)) words = Array.from(words);
-    if (!isArrayOf('number', words))
-      throw new Error(`bech32.encode words should be array of numbers, not ${typeof words}`);
-    if (prefix.length === 0) throw new TypeError(`Invalid prefix length ${prefix.length}`);
-    const actualLength = prefix.length + 7 + words.length;
+    anumArr('bech32.encode', words);
+    const plen = prefix.length;
+    if (plen === 0) throw new TypeError(`Invalid prefix length ${plen}`);
+    const actualLength = plen + 7 + words.length;
     if (limit !== false && actualLength > limit)
       throw new TypeError(`Length ${actualLength} exceeds limit ${limit}`);
     const lowered = prefix.toLowerCase();
@@ -533,10 +543,10 @@ function genBech32(encoding: 'bech32' | 'bech32m'): Bech32 {
   ): Bech32Decoded<Prefix>;
   function decode(str: string, limit?: number | false): Bech32Decoded;
   function decode(str: string, limit: number | false = 90): Bech32Decoded {
-    if (typeof str !== 'string')
-      throw new Error(`bech32.decode input should be string, not ${typeof str}`);
-    if (str.length < 8 || (limit !== false && str.length > limit))
-      throw new TypeError(`Wrong string length: ${str.length} (${str}). Expected (8..${limit})`);
+    astr('bech32.decode input', str);
+    const slen = str.length;
+    if (slen < 8 || (limit !== false && slen > limit))
+      throw new TypeError(`Wrong string length: ${slen} (${str}). Expected (8..${limit})`);
     // don't allow mixed case
     const lowered = str.toLowerCase();
     if (str !== lowered && str !== str.toUpperCase())
@@ -607,7 +617,7 @@ export const hex: BytesCoder = /* @__PURE__ */ chain(
   alphabet('0123456789abcdef'),
   join(''),
   normalize((s: string) => {
-    if (typeof s !== 'string' || s.length % 2)
+    if (typeof s !== 'string' || s.length % 2 !== 0)
       throw new TypeError(`hex.decode: expected string, got ${typeof s} with length ${s.length}`);
     return s.toLowerCase();
   })
