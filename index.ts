@@ -136,7 +136,7 @@ function padding(bits: number, chr = '='): Coder<string[], string[]> {
       return data;
     },
     decode(input: string[]): string[] {
-      astrArr('padding.encode', input);
+      astrArr('padding.decode', input);
       let end = input.length;
       if ((end * bits) % 8)
         throw new Error('padding: invalid, string should have whole number of bytes');
