@@ -1,9 +1,5 @@
 /*! scure-base - MIT License (c) 2022 Paul Miller (paulmillr.com) */
 
-// Utilities
-export function assertNumber(n: number) {
-  if (!Number.isSafeInteger(n)) throw new Error(`Wrong integer: ${n}`);
-}
 export interface Coder<F, T> {
   encode(from: F): T;
   decode(to: T): F;
@@ -18,12 +14,14 @@ function isBytes(a: unknown): a is Uint8Array {
   return a instanceof Uint8Array || (ArrayBuffer.isView(a) && a.constructor.name === 'Uint8Array');
 }
 
-function isArrayOf(type: 'string' | 'number', arr: any[]) {
+function isArrayOf(isString: boolean, arr: any[]) {
   if (!Array.isArray(arr)) return false;
   if (arr.length === 0) return true;
-  if (type === 'string') return arr.every((item) => typeof item === 'string');
-  if (type === 'number') return arr.every((item) => Number.isSafeInteger(item));
-  return false;
+  if (isString) {
+    return arr.every((item) => typeof item === 'string');
+  } else {
+    return arr.every((item) => Number.isSafeInteger(item));
+  }
 }
 
 // no abytes: seems to have 10% slowdown. Why?!
@@ -38,13 +36,19 @@ function astr(label: string, input: unknown): input is string {
   return true;
 }
 
-function astrArr(label: string, input: string[]): input is string[] {
-  if (!isArrayOf('string', input)) throw new Error(`${label}: array of strings expected`);
-  return true;
+function anumber(n: number) {
+  if (!Number.isSafeInteger(n)) throw new Error(`invalid integer: ${n}`);
 }
-function anumArr(label: string, input: number[]): input is number[] {
-  if (!isArrayOf('number', input)) throw new Error(`${label}: array of strings expected`);
-  return true;
+export const assertNumber = anumber;
+
+function aArr(input: any[]) {
+  if (!Array.isArray(input)) throw new Error('array expected');
+}
+function astrArr(label: string, input: string[]) {
+  if (!isArrayOf(true, input)) throw new Error(`${label}: array of strings expected`);
+}
+function anumArr(label: string, input: number[]) {
+  if (!isArrayOf(false, input)) throw new Error(`${label}: array of numbers expected`);
 }
 
 // TODO: some recusive type inference so it would check correct order of input/output inside rest?
@@ -63,6 +67,9 @@ type AsChain<C extends Chain, Rest = Tail<C>> = {
   [K in keyof C]: Coder<Input<C[K]>, Input<K extends keyof Rest ? Rest[K] : any>>;
 };
 
+/**
+ * @__NO_SIDE_EFFECTS__
+ */
 function chain<T extends Chain & AsChain<T>>(...args: T): Coder<Input<First<T>>, Output<Last<T>>> {
   const id = (a: any) => a;
   // Wrap call in closure so JIT can inline calls
@@ -77,6 +84,7 @@ function chain<T extends Chain & AsChain<T>>(...args: T): Coder<Input<First<T>>,
 /**
  * Encodes integer radix representation to array of strings using alphabet and back.
  * Could also be array of strings.
+ * @__NO_SIDE_EFFECTS__
  */
 function alphabet(letters: string | string[]): Coder<number[], string[]> {
   // mapping 1 to "b"
@@ -88,7 +96,7 @@ function alphabet(letters: string | string[]): Coder<number[], string[]> {
   const indexes = new Map(lettersA.map((l, i) => [l, i]));
   return {
     encode: (digits: number[]) => {
-      if (!Array.isArray(digits)) throw new Error('array expected');
+      aArr(digits);
       return digits.map((i) => {
         if (!Number.isSafeInteger(i) || i < 0 || i >= len)
           throw new Error(
@@ -98,7 +106,7 @@ function alphabet(letters: string | string[]): Coder<number[], string[]> {
       });
     },
     decode: (input: string[]): number[] => {
-      if (!Array.isArray(input)) throw new Error('array expected');
+      aArr(input);
       return input.map((letter) => {
         astr('alphabet.decode', letter);
         const i = indexes.get(letter);
@@ -109,6 +117,9 @@ function alphabet(letters: string | string[]): Coder<number[], string[]> {
   };
 }
 
+/**
+ * @__NO_SIDE_EFFECTS__
+ */
 function join(separator = ''): Coder<string[], string> {
   astr('join', separator);
   return {
@@ -125,9 +136,10 @@ function join(separator = ''): Coder<string[], string> {
 
 /**
  * Pad strings array so it has integer number of bits
+ * @__NO_SIDE_EFFECTS__
  */
 function padding(bits: number, chr = '='): Coder<string[], string[]> {
-  assertNumber(bits);
+  anumber(bits);
   astr('padding', chr);
   return {
     encode(data: string[]): string[] {
@@ -150,6 +162,9 @@ function padding(bits: number, chr = '='): Coder<string[], string[]> {
   };
 }
 
+/**
+ * @__NO_SIDE_EFFECTS__
+ */
 function normalize<T>(fn: (val: T) => T): Coder<T, T> {
   afn(fn);
   return { encode: (from: T) => from, decode: (to: T) => fn(to) };
@@ -160,16 +175,16 @@ function normalize<T>(fn: (val: T) => T): Coder<T, T> {
  */
 function convertRadix(data: number[], from: number, to: number): number[] {
   // base 1 is impossible
-  if (from < 2) throw new Error(`convertRadix: wrong from=${from}, base cannot be less than 2`);
-  if (to < 2) throw new Error(`convertRadix: wrong to=${to}, base cannot be less than 2`);
-  if (!Array.isArray(data)) throw new Error('convertRadix: data should be array');
+  if (from < 2) throw new Error(`convertRadix: invalid from=${from}, base cannot be less than 2`);
+  if (to < 2) throw new Error(`convertRadix: invalid to=${to}, base cannot be less than 2`);
+  aArr(data);
   if (!data.length) return [];
   let pos = 0;
   const res = [];
-  const digits = Array.from(data);
-  digits.forEach((d) => {
-    assertNumber(d);
-    if (d < 0 || d >= from) throw new Error(`Wrong integer: ${d}`);
+  const digits = Array.from(data, (d) => {
+    anumber(d);
+    if (d < 0 || d >= from) throw new Error(`invalid integer: ${d}`);
+    return d;
   });
   const dlen = digits.length;
   while (true) {
@@ -177,15 +192,16 @@ function convertRadix(data: number[], from: number, to: number): number[] {
     let done = true;
     for (let i = pos; i < dlen; i++) {
       const digit = digits[i]!;
-      const digitBase = from * carry + digit;
+      const fromCarry = from * carry;
+      const digitBase = fromCarry + digit;
       if (
         !Number.isSafeInteger(digitBase) ||
-        (from * carry) / from !== carry ||
-        digitBase - digit !== from * carry
+        fromCarry / from !== carry ||
+        digitBase - digit !== fromCarry
       ) {
         throw new Error('convertRadix: carry overflow');
       }
-      let div = digitBase / to;
+      const div = digitBase / to;
       carry = digitBase % to;
       const rounded = Math.floor(div);
       digits[i] = rounded;
@@ -203,7 +219,7 @@ function convertRadix(data: number[], from: number, to: number): number[] {
 }
 
 const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
-const radix2carry = /*@__NO_SIDE_EFFECTS__ */ (from: number, to: number) =>
+const radix2carry = /* @__NO_SIDE_EFFECTS__ */ (from: number, to: number) =>
   from + (to - gcd(from, to));
 const powers: number[] = /* @__PURE__ */ (() => {
   let res = [];
@@ -214,7 +230,7 @@ const powers: number[] = /* @__PURE__ */ (() => {
  * Implemented with numbers, because BigInt is 5x slower
  */
 function convertRadix2(data: number[], from: number, to: number, padding: boolean): number[] {
-  if (!Array.isArray(data)) throw new Error('convertRadix2: data should be array');
+  aArr(data);
   if (from <= 0 || from > 32) throw new Error(`convertRadix2: wrong from=${from}`);
   if (to <= 0 || to > 32) throw new Error(`convertRadix2: wrong to=${to}`);
   if (radix2carry(from, to) > 32) {
@@ -228,7 +244,7 @@ function convertRadix2(data: number[], from: number, to: number, padding: boolea
   const mask = powers[to]! - 1;
   const res: number[] = [];
   for (const n of data) {
-    assertNumber(n);
+    anumber(n);
     if (n >= max) throw new Error(`convertRadix2: invalid data word=${n} from=${from}`);
     carry = (carry << from) | n;
     if (pos + from > 32) throw new Error(`convertRadix2: carry overflow pos=${pos} from=${from}`);
@@ -245,8 +261,11 @@ function convertRadix2(data: number[], from: number, to: number, padding: boolea
   return res;
 }
 
+/**
+ * @__NO_SIDE_EFFECTS__
+ */
 function radix(num: number): Coder<Uint8Array, number[]> {
-  assertNumber(num);
+  anumber(num);
   const _256 = 2 ** 8;
   return {
     encode: (bytes: Uint8Array) => {
@@ -263,9 +282,10 @@ function radix(num: number): Coder<Uint8Array, number[]> {
 /**
  * If both bases are power of same number (like `2**8 <-> 2**64`),
  * there is a linear algorithm. For now we have implementation for power-of-two bases only.
+ * @__NO_SIDE_EFFECTS__
  */
 function radix2(bits: number, revPadding = false): Coder<Uint8Array, number[]> {
-  assertNumber(bits);
+  anumber(bits);
   if (bits <= 0 || bits > 32) throw new Error('radix2: bits should be in (0..32]');
   if (radix2carry(8, bits) > 32 || radix2carry(bits, 8) > 32)
     throw new Error('radix2: carry overflow');
@@ -295,22 +315,22 @@ function checksum(
   len: number,
   fn: (data: Uint8Array) => Uint8Array
 ): Coder<Uint8Array, Uint8Array> {
-  assertNumber(len);
+  anumber(len);
   afn(fn);
   return {
     encode(data: Uint8Array) {
       if (!isBytes(data)) throw new Error('checksum.encode: input should be Uint8Array');
-      const checksum = fn(data).slice(0, len);
+      const sum = fn(data).slice(0, len);
       const res = new Uint8Array(data.length + len);
       res.set(data);
-      res.set(checksum, data.length);
+      res.set(sum, data.length);
       return res;
     },
     decode(data: Uint8Array) {
       if (!isBytes(data)) throw new Error('checksum.decode: input should be Uint8Array');
       const payload = data.slice(0, -len);
-      const newChecksum = fn(payload).slice(0, len);
       const oldChecksum = data.slice(-len);
+      const newChecksum = fn(payload).slice(0, len);
       for (let i = 0; i < len; i++)
         if (newChecksum[i] !== oldChecksum[i]) throw new Error('Invalid checksum');
       return payload;
@@ -329,34 +349,30 @@ export const utils = {
 /**
  * base16 encoding.
  */
-export const base16: BytesCoder = /* @__PURE__ */ chain(
-  radix2(4),
-  alphabet('0123456789ABCDEF'),
-  join('')
-);
-export const base32: BytesCoder = /* @__PURE__ */ chain(
+export const base16: BytesCoder = chain(radix2(4), alphabet('0123456789ABCDEF'), join(''));
+export const base32: BytesCoder = chain(
   radix2(5),
   alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'),
   padding(5),
   join('')
 );
-export const base32nopad: BytesCoder = /* @__PURE__ */ chain(
+export const base32nopad: BytesCoder = chain(
   radix2(5),
   alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'),
   join('')
 );
-export const base32hex: BytesCoder = /* @__PURE__ */ chain(
+export const base32hex: BytesCoder = chain(
   radix2(5),
   alphabet('0123456789ABCDEFGHIJKLMNOPQRSTUV'),
   padding(5),
   join('')
 );
-export const base32hexnopad: BytesCoder = /* @__PURE__ */ chain(
+export const base32hexnopad: BytesCoder = chain(
   radix2(5),
   alphabet('0123456789ABCDEFGHIJKLMNOPQRSTUV'),
   join('')
 );
-export const base32crockford: BytesCoder = /* @__PURE__ */ chain(
+export const base32crockford: BytesCoder = chain(
   radix2(5),
   alphabet('0123456789ABCDEFGHJKMNPQRSTVWXYZ'),
   join(''),
@@ -368,7 +384,7 @@ export const base32crockford: BytesCoder = /* @__PURE__ */ chain(
  * const b = base64.decode('A951'); // Uint8Array.from([ 3, 222, 117 ])
  * base64.encode(b); // 'A951'
  */
-export const base64: BytesCoder = /* @__PURE__ */ chain(
+export const base64: BytesCoder = chain(
   radix2(6),
   alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'),
   padding(6),
@@ -377,18 +393,18 @@ export const base64: BytesCoder = /* @__PURE__ */ chain(
 /**
  * base64 without padding.
  */
-export const base64nopad: BytesCoder = /* @__PURE__ */ chain(
+export const base64nopad: BytesCoder = chain(
   radix2(6),
   alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'),
   join('')
 );
-export const base64url: BytesCoder = /* @__PURE__ */ chain(
+export const base64url: BytesCoder = chain(
   radix2(6),
   alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'),
   padding(6),
   join('')
 );
-export const base64urlnopad: BytesCoder = /* @__PURE__ */ chain(
+export const base64urlnopad: BytesCoder = chain(
   radix2(6),
   alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'),
   join('')
@@ -396,19 +412,20 @@ export const base64urlnopad: BytesCoder = /* @__PURE__ */ chain(
 
 // base58 code
 // -----------
-const genBase58 = (abc: string) => chain(radix(58), alphabet(abc), join(''));
+const genBase58 = /* @__NO_SIDE_EFFECTS__ */ (abc: string) =>
+  chain(radix(58), alphabet(abc), join(''));
 
 /**
  * Base58: base64 without characters +, /, 0, O, I, l.
  * Quadratic (O(n^2)) - so, can't be used on large inputs.
  */
-export const base58: BytesCoder = /* @__PURE__ */ genBase58(
+export const base58: BytesCoder = genBase58(
   '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 );
-export const base58flickr: BytesCoder = /* @__PURE__ */ genBase58(
+export const base58flickr: BytesCoder = genBase58(
   '123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ'
 );
-export const base58xrp: BytesCoder = /* @__PURE__ */ genBase58(
+export const base58xrp: BytesCoder = genBase58(
   'rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz'
 );
 
@@ -468,7 +485,7 @@ export interface Bech32DecodedWithArray<Prefix extends string = string> {
   bytes: Uint8Array;
 }
 
-const BECH_ALPHABET: Coder<number[], string> = /* @__PURE__ */ chain(
+const BECH_ALPHABET: Coder<number[], string> = chain(
   alphabet('qpzry9x8gf2tvdw0s3jn54khce6mua7l'),
   join('')
 );
@@ -516,6 +533,9 @@ export interface Bech32 {
   fromWordsUnsafe(to: number[]): void | Uint8Array;
   toWords(from: Uint8Array): number[];
 }
+/**
+ * @__NO_SIDE_EFFECTS__
+ */
 function genBech32(encoding: 'bech32' | 'bech32m'): Bech32 {
   const ENCODING_CONST = encoding === 'bech32' ? 1 : 0x2bc830a3;
   const _words = radix2(5);
@@ -550,7 +570,7 @@ function genBech32(encoding: 'bech32' | 'bech32m'): Bech32 {
     astr('bech32.decode input', str);
     const slen = str.length;
     if (slen < 8 || (limit !== false && slen > limit))
-      throw new TypeError(`Wrong string length: ${slen} (${str}). Expected (8..${limit})`);
+      throw new TypeError(`invalid string length: ${slen} (${str}). Expected (8..${limit})`);
     // don't allow mixed case
     const lowered = str.toLowerCase();
     if (str !== lowered && str !== str.toUpperCase())
@@ -593,8 +613,8 @@ function genBech32(encoding: 'bech32' | 'bech32m'): Bech32 {
 /**
  * Low-level bech32 operations. Operates on words.
  */
-export const bech32: Bech32 = /* @__PURE__ */ genBech32('bech32');
-export const bech32m: Bech32 = /* @__PURE__ */ genBech32('bech32m');
+export const bech32: Bech32 = genBech32('bech32');
+export const bech32m: Bech32 = genBech32('bech32m');
 
 declare const TextEncoder: any;
 declare const TextDecoder: any;
@@ -616,7 +636,7 @@ export const utf8: BytesCoder = {
  * const b = hex.decode("0102ff"); // => new Uint8Array([ 1, 2, 255 ])
  * const str = hex.encode(b); // "0102ff"
  */
-export const hex: BytesCoder = /* @__PURE__ */ chain(
+export const hex: BytesCoder = chain(
   radix2(4),
   alphabet('0123456789abcdef'),
   join(''),
