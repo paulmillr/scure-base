@@ -12,6 +12,7 @@ Audited & minimal implementation of bech32, base64, base58, base32 & base16.
   - [Base58](https://www.ietf.org/archive/id/draft-msporny-base58-03.txt),
     [Base58check](https://en.bitcoin.it/wiki/Base58Check_encoding),
     [Base32 Crockford](https://www.crockford.com/base32.html)
+- 🪶 Only 8KB
 
 Check out [Projects using scure-base](#projects-using-scure-base).
 
