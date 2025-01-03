@@ -36,10 +36,10 @@ function astr(label: string, input: unknown): input is string {
   return true;
 }
 
-function anumber(n: number) {
+function anumber(n: number): void {
   if (!Number.isSafeInteger(n)) throw new Error(`invalid integer: ${n}`);
 }
-export const assertNumber = anumber;
+export const assertNumber: typeof anumber = anumber;
 
 function aArr(input: any[]) {
   if (!Array.isArray(input)) throw new Error('array expected');
@@ -339,7 +339,7 @@ function checksum(
 }
 
 // prettier-ignore
-export const utils = {
+export const utils: { alphabet: typeof alphabet; chain: typeof chain; checksum: typeof checksum; convertRadix: typeof convertRadix; convertRadix2: typeof convertRadix2; radix: typeof radix; radix2: typeof radix2; join: typeof join; padding: typeof padding; } = {
   alphabet, chain, checksum, convertRadix, convertRadix2, radix, radix2, join, padding,
 };
 
@@ -471,7 +471,8 @@ export const createBase58check = (sha256: (data: Uint8Array) => Uint8Array): Byt
  * Use `createBase58check` instead.
  * @deprecated
  */
-export const base58check = createBase58check;
+export const base58check: (sha256: (data: Uint8Array) => Uint8Array) => BytesCoder =
+  createBase58check;
 
 // Bech32 code
 // -----------
@@ -648,7 +649,7 @@ export const hex: BytesCoder = chain(
 );
 
 // prettier-ignore
-const CODERS = {
+const CODERS: { utf8: BytesCoder; hex: BytesCoder; base16: BytesCoder; base32: BytesCoder; base64: BytesCoder; base64url: BytesCoder; base58: BytesCoder; base58xmr: BytesCoder; } = {
   utf8, hex, base16, base32, base64, base64url, base58, base58xmr
 };
 type CoderType = keyof typeof CODERS;
@@ -660,11 +661,11 @@ export const bytesToString = (type: CoderType, bytes: Uint8Array): string => {
   if (!isBytes(bytes)) throw new TypeError('bytesToString() expects Uint8Array');
   return CODERS[type].encode(bytes);
 };
-export const str = bytesToString; // as in python, but for bytes only
+export const str: (type: CoderType, bytes: Uint8Array) => string = bytesToString; // as in python, but for bytes only
 
 export const stringToBytes = (type: CoderType, str: string): Uint8Array => {
   if (!CODERS.hasOwnProperty(type)) throw new TypeError(coderTypeError);
   if (typeof str !== 'string') throw new TypeError('stringToBytes() expects string');
   return CODERS[type].decode(str);
 };
-export const bytes = stringToBytes;
+export const bytes: (type: CoderType, str: string) => Uint8Array = stringToBytes;
