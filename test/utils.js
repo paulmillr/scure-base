@@ -62,8 +62,7 @@ let RANDOM = new Uint8Array();
 function concatBytes(a, b) {
   return new Uint8Array(Buffer.concat([a, b]));
 }
-for (let i = 0; i < 32 * 1024; i++)
-  RANDOM = concatBytes(RANDOM, (start = sha256(start)));
+for (let i = 0; i < 32 * 1024; i++) RANDOM = concatBytes(RANDOM, (start = sha256(start)));
 
 const getTypeTests = () => [
   [0, '0'],

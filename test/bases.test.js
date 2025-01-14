@@ -24,7 +24,6 @@ import { Buffer } from 'node:buffer';
 import { should } from 'micro-should';
 import { json, RANDOM } from './utils.js';
 
-
 const base58check = createBase58check(sha256);
 const vectors = json('./vectors/base_vectors.json').v;
 
@@ -208,5 +207,5 @@ should('utils: padding', () => {
   assert.throws(() => coder.decode(['1', 1, true, '=']));
 });
 
-export { CODERS }
+export { CODERS };
 should.runWhen(import.meta.url);
