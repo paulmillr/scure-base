@@ -1,4 +1,5 @@
 import assert from 'node:assert';
+import { Buffer } from 'node:buffer';
 import {
   base32,
   base32nopad,
@@ -20,7 +21,6 @@ import {
   utils,
 } from '../lib/esm/index.js';
 import { sha256 } from '@noble/hashes/sha2';
-import { Buffer } from 'node:buffer';
 import { should } from 'micro-should';
 import { json, RANDOM } from './utils.js';
 

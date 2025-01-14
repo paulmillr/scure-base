@@ -59,9 +59,21 @@ function stats(list) {
 let start = new Uint8Array([1, 2, 3, 4, 5]);
 let RANDOM = new Uint8Array();
 // Fill with random data (1MB)
-function concatBytes(a, b) {
-  return new Uint8Array(Buffer.concat([a, b]));
+function concatBytes(...arrays) {
+  let sum = 0;
+  for (let i = 0; i < arrays.length; i++) {
+    const a = arrays[i];
+    sum += a.length;
+  }
+  const res = new Uint8Array(sum);
+  for (let i = 0, pad = 0; i < arrays.length; i++) {
+    const a = arrays[i];
+    res.set(a, pad);
+    pad += a.length;
+  }
+  return res;
 }
+
 for (let i = 0; i < 32 * 1024; i++) RANDOM = concatBytes(RANDOM, (start = sha256(start)));
 
 const getTypeTests = () => [

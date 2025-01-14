@@ -1,4 +1,5 @@
 import assert from 'node:assert';
+import { Buffer } from 'node:buffer';
 import { should } from 'micro-should';
 import { base16, base32, base32hex, base32crockford, base64, base64url } from '../lib/esm/index.js';
 

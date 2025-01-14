@@ -1,4 +1,5 @@
 import { deepStrictEqual, throws } from 'node:assert';
+import { Buffer } from 'node:buffer';
 import { describe, should } from 'micro-should';
 import { bech32, bech32m } from '../lib/esm/index.js';
 

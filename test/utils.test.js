@@ -1,7 +1,7 @@
 import { deepStrictEqual, throws } from 'node:assert';
 import fc from 'fast-check';
 import { describe, should } from 'micro-should';
-import { hex } from '../lib/index.js';
+import { hex } from '../lib/esm/index.js';
 import { getTypeTests } from './utils.js';
 
 // const concatBytes = utils.concatBytes;
@@ -36,7 +36,8 @@ describe('utils', () => {
         if (hex.length % 2 !== 0) return;
         deepStrictEqual(hex, bytesToHex(hexToBytes(hex)));
         deepStrictEqual(hex, bytesToHex(hexToBytes(hex.toUpperCase())));
-        deepStrictEqual(hexToBytes(hex), Uint8Array.from(Buffer.from(hex, 'hex')));
+        if (typeof Buffer !== 'undefined')
+          deepStrictEqual(hexToBytes(hex), Uint8Array.from(Buffer.from(hex, 'hex')));
       })
     )
   );

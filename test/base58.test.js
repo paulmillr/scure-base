@@ -1,4 +1,5 @@
 import assert from 'node:assert';
+import { Buffer } from 'node:buffer';
 import { should, describe } from 'micro-should';
 import { sha256 } from '@noble/hashes/sha2';
 import { base58, base58xmr, createBase58check, base58xrp } from '../lib/esm/index.js';
