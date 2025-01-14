@@ -1,6 +1,6 @@
-const { deepStrictEqual, throws } = require('node:assert');
-const { describe, should } = require('micro-should');
-const { bech32, bech32m, radix2 } = require('..');
+import { deepStrictEqual, throws } from 'node:assert';
+import { describe, should } from 'micro-should';
+import { bech32, bech32m } from '../lib/esm/index.js';
 
 const VALID = [
   ['BC1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KV8F3T4', '751e76e8199196d454941c45d1b3a323f1433bd6'],
@@ -334,4 +334,4 @@ Expire Time
   deepStrictEqual(tags.length, 6);
 });
 
-if (require.main === module) should.run();
+should.runWhen(import.meta.url);

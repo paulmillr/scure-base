@@ -1,7 +1,7 @@
-const assert = require('node:assert');
-const { should } = require('micro-should');
-const { RANDOM, stats } = require('./utils');
-const { CODERS } = require('./bases.test.js');
+import assert from 'node:assert';
+import { should } from 'micro-should';
+import { RANDOM, stats } from './utils.js';
+import { CODERS } from './bases.test.js';
 
 const getTime = () => Number(process.hrtime.bigint());
 
@@ -124,4 +124,4 @@ for (const coder in CODERS) {
 }
 
 // takes ~8min
-if (require.main === module) should.run();
+should.runWhen(import.meta.url);

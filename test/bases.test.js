@@ -1,5 +1,5 @@
-const assert = require('node:assert');
-const {
+import assert from 'node:assert';
+import {
   base32,
   base32nopad,
   base32hex,
@@ -7,7 +7,7 @@ const {
   base32crockford,
   base58,
   base58xmr,
-  base58check: _base58check,
+  createBase58check,
   base58xrp,
   base64,
   base64nopad,
@@ -18,14 +18,15 @@ const {
   bytes,
   str,
   utils,
-} = require('..');
-const base58check = _base58check((buf) =>
-  Uint8Array.from(require('crypto').createHash('sha256').update(buf).digest())
-);
-const { Buffer } = require('buffer');
-const { should } = require('micro-should');
-const { RANDOM } = require('./utils');
-const vectors = require('./vectors/base_vectors.json').v;
+} from '../lib/esm/index.js';
+import { sha256 } from '@noble/hashes/sha2';
+import { Buffer } from 'node:buffer';
+import { should } from 'micro-should';
+import { json, RANDOM } from './utils.js';
+
+
+const base58check = createBase58check(sha256);
+const vectors = json('./vectors/base_vectors.json').v;
 
 const CODERS = {
   base32,
@@ -207,5 +208,5 @@ should('utils: padding', () => {
   assert.throws(() => coder.decode(['1', 1, true, '=']));
 });
 
-module.exports = { CODERS };
-if (require.main === module) should.run();
+export { CODERS }
+should.runWhen(import.meta.url);

@@ -1,11 +1,15 @@
-const assert = require('node:assert');
-const { should, describe } = require('micro-should');
-const { base58, base58xmr, base58check: _base58check, base58xrp } = require('..');
-const VECTORS_2 = require('./vectors/base58.json');
+import assert from 'node:assert';
+import { should, describe } from 'micro-should';
+import { sha256 } from '@noble/hashes/sha2';
+import { base58, base58xmr, createBase58check, base58xrp } from '../lib/esm/index.js';
+import { json } from './utils.js';
+
+const VECTORS_2 = json('./vectors/base58.json');
 // https://github.com/bigreddmachine/MoneroPy/blob/master/tests/testdata.py (BSD license)
-const XMR_VECTORS = require('./vectors/base58_xmr.json');
+const XMR_VECTORS = json('./vectors/base58_xmr.json');
 // https://github.com/bitcoinjs/bs58check/blob/master/test/fixtures.json (MIT license)
-const B58CHK_VECTORS = require('./vectors/base58_check.json');
+const B58CHK_VECTORS = json('./vectors/base58_check.json');
+
 const hexToArray = (hex) => Uint8Array.from(Buffer.from(hex, 'hex'));
 const asciiToArray = (str) => new Uint8Array(str.split('').map((c) => c.charCodeAt(0)));
 
@@ -56,9 +60,7 @@ describe('base58: xmr vectors', () => {
   }
 });
 
-const base58check = _base58check((buf) =>
-  Uint8Array.from(require('crypto').createHash('sha256').update(buf).digest())
-);
+const base58check = createBase58check(sha256);
 
 for (const v of B58CHK_VECTORS.valid) {
   should(`b58-check: decode ${v}`, () => {
@@ -149,4 +151,4 @@ should('base58xmr: wrong chars', () => {
   for (const v of vectors) assert.throws(() => base58xmr.decode(v));
 });
 
-if (require.main === module) should.run();
+should.runWhen(import.meta.url);

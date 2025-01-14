@@ -1,6 +1,6 @@
-const assert = require('node:assert');
-const { should } = require('micro-should');
-const { bech32, bech32m } = require('..');
+import assert from 'node:assert';
+import { should } from 'micro-should';
+import { bech32, bech32m } from '../lib/esm/index.js';
 
 const BECH32_VALID = [
   { string: 'A12UEL5L', prefix: 'A', words: [] },
@@ -388,4 +388,4 @@ should('encode accepts Uint8Array', () => {
   assert.deepStrictEqual(bech32.encode('test', bytes), 'test1qqgjyvlld2nz37');
 });
 
-if (require.main === module) should.run();
+should.runWhen(import.meta.url);

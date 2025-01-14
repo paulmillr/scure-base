@@ -1,6 +1,6 @@
-const assert = require('node:assert');
-const { should } = require('micro-should');
-const { base16, base32, base32hex, base32crockford, base64, base64url } = require('..');
+import assert from 'node:assert';
+import { should } from 'micro-should';
+import { base16, base32, base32hex, base32crockford, base64, base64url } from '../lib/esm/index.js';
 
 const BASE16_VECTORS = [
   ['', ''],
@@ -194,4 +194,4 @@ genTests('base32crockford', base32crockford, BASE32_CROCKFORD, undefined, false)
 genTests('base64', base64, BASE64_VECTORS, BASE64_BAD);
 genTests('base64url', base64url, BASE64_URL);
 
-if (require.main === module) should.run();
+should.runWhen(import.meta.url);

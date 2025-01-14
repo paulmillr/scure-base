@@ -1,10 +1,10 @@
-const { should } = require('micro-should');
+import { should } from 'micro-should';
 
-require('./bases.test.js');
-require('./rfc4648.test.js');
-require('./base58.test.js');
-require('./bech32.test.js');
-require('./bip173.test.js');
-require('./utils.test.js');
+import './bases.test.js';
+import './rfc4648.test.js';
+import './base58.test.js';
+import './bech32.test.js';
+import './bip173.test.js';
+import './utils.test.js';
 
-should.run();
+should.runWhen(import.meta.url);

@@ -1,8 +1,8 @@
-const { deepStrictEqual, throws } = require('node:assert');
-const fc = require('fast-check');
-const { describe, should } = require('micro-should');
-const { hex, utils } = require('../lib/index.js');
-const { getTypeTests } = require('./utils.js');
+import { deepStrictEqual, throws } from 'node:assert';
+import fc from 'fast-check';
+import { describe, should } from 'micro-should';
+import { hex } from '../lib/index.js';
+import { getTypeTests } from './utils.js';
 
 // const concatBytes = utils.concatBytes;
 const hexToBytes = hex.decode;
@@ -75,4 +75,4 @@ describe('utils', () => {
 // if (import.meta.url === url.pathToFileURL(process.argv[1]).href) {
 //   should.run();
 // }
-if (require.main === module) should.run();
+should.runWhen(import.meta.url);
