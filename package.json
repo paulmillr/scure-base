@@ -14,9 +14,9 @@
     "lib/esm/package.json",
     "index.ts"
   ],
-  "main": "lib/index.js",
-  "module": "lib/esm/index.js",
-  "types": "lib/index.d.ts",
+  "main": "./lib/index.js",
+  "module": "./lib/esm/index.js",
+  "types": "./lib/index.d.ts",
   "exports": {
     ".": {
       "import": "./lib/esm/index.js",
@@ -29,7 +29,8 @@
     "lint": "prettier --check index.ts",
     "format": "prettier --write index.ts",
     "test": "node test/index.js",
-    "test:deno": "deno test test/deno.ts"
+    "test:bun": "bun test/index.js",
+    "test:deno": "deno --allow-env --allow-read test/index.js && deno test/deno.ts"
   },
   "sideEffects": false,
   "author": "Paul Miller (https://paulmillr.com)",
