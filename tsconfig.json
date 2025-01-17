@@ -1,8 +1,10 @@
 {
-  "extends": "@paulmillr/jsbt/tsconfig.cjs.json",
+  "extends": "@paulmillr/jsbt/tsconfig.esm.json",
   "compilerOptions": {
-    "outDir": "lib",
-    "isolatedDeclarations": true
+    "module": "es2020",
+    "moduleResolution": "bundler",
+    "noUncheckedIndexedAccess": true,
+    "outDir": "lib/esm"
   },
   "include": ["index.ts", "src"],
   "exclude": ["node_modules", "lib"]
