@@ -1,5 +1,5 @@
 const bench = require('micro-bmark');
-const { run, mark } = bench; // or bench.mark
+const mark = bench; // or bench.mark
 const { base64, base58, hex } = require('../..');
 const stableBase64 = require('@stablelib/base64');
 const microBase58 = require('micro-base58');
@@ -59,7 +59,7 @@ const buffers = {
 };
 
 const main = () =>
-  run(async () => {
+  (async () => {
     for (let [k, libs] of Object.entries(CODERS)) {
       console.log(`==== ${k} ====`);
       for (const [size, [samples, buf]] of Object.entries(buffers)) {
@@ -72,7 +72,7 @@ const main = () =>
         console.log();
       }
     }
-  });
+  })();
 
 module.exports = { main };
 if (require.main === module) main();
