@@ -1,10 +1,7 @@
 {
   "extends": "@paulmillr/jsbt/tsconfig.cjs.json",
   "compilerOptions": {
-    "module": "es2020",
-    "moduleResolution": "bundler",
-    "noUncheckedIndexedAccess": true,
-    "outDir": "./lib"
+    "outDir": "lib"
   },
   "include": ["index.ts", "src"],
   "exclude": ["node_modules", "lib"]
