@@ -4,7 +4,7 @@
     "module": "es2020",
     "moduleResolution": "bundler",
     "noUncheckedIndexedAccess": true,
-    "outDir": "lib/esm"
+    "outDir": "./lib/esm"
   },
   "include": ["index.ts", "src"],
   "exclude": ["node_modules", "lib"]
