@@ -195,16 +195,31 @@ At commit [ae00e6d7](https://github.com/ethereum/js-ethereum-cryptography/commit
 it was extracted to a separate package called `micro-base`.
 After the audit we've decided to use `@scure` NPM namespace for security.
 
-## Resources
+### Supply chain security
+
+- **Commits** are signed with PGP keys, to prevent forgery. Make sure to verify commit signatures
+- **Releases** are transparent and built on GitHub CI. Make sure to verify [provenance](https://docs.npmjs.com/generating-provenance-statements) logs
+- **Rare releasing** is followed to ensure less re-audit need for end-users
+- **Dependencies** are minimized and locked-down: any dependency could get hacked and users will be downloading malware with every install.
+  - We make sure to use as few dependencies as possible
+  - Automatic dep updates are prevented by locking-down version ranges; diffs are checked with `npm-diff`
+- **Dev Dependencies** are disabled for end-users; they are only used to develop / build the source code
+
+For this package, there are 0 dependencies; and a few dev dependencies:
+
+- micro-bmark, micro-should and jsbt are used for benchmarking / testing / build tooling and developed by the same author
+- prettier, fast-check and typescript are used for code quality / test generation / ts compilation. It's hard to audit their source code thoroughly and fully because of their size
+
+## Contributing & testing
+
+- `npm install && npm run build && npm test` will build the code and run tests.
+- `npm run lint` / `npm run format` will run linter / fix linter issues.
+- `npm run build:release` will build single file
 
 ### Projects using scure-base
 
 - [scure-btc-signer](https://github.com/paulmillr/scure-btc-signer)
-- [prefixed-api-key](https://github.com/truestamp/prefixed-api-key):
-  A re-write of seamapi/prefixed-api-key that enhances the
-  cryptographic security properties and safety when verifying a key. The keys and verifiers
-  of these two libraries are not compatible.
-  [Motivating post on the issues with using JWT from fly.io](https://fly.io/blog/api-tokens-a-tedious-survey/)
+- [prefixed-api-key](https://github.com/truestamp/prefixed-api-key)
 - [coinspace](https://github.com/CoinSpace/CoinSpace) wallet and its modules:
   [ada](https://github.com/CoinSpace/cs-cardano-wallet),
   [btc](https://github.com/CoinSpace/cs-bitcoin-wallet)
