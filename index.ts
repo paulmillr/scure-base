@@ -387,7 +387,7 @@ export const base32crockford: BytesCoder = chain(
 
 // Built-in base64 conversion https://caniuse.com/mdn-javascript_builtins_uint8array_frombase64
 // TODO: temporarily set to false, trying to understand bugs
-const hasBase64Builtin: boolean = false ||
+const hasBase64Builtin: boolean =
   // @ts-ignore
   typeof Uint8Array.from([]).toBase64 === 'function' && typeof Uint8Array.fromBase64 === 'function';
 // prettier-ignore
@@ -401,8 +401,11 @@ const hasBase64Builtin: boolean = false ||
 export const base64: BytesCoder = hasBase64Builtin ? {
   // @ts-ignore
   encode(b) { abytes(b); return b.toBase64(); },
-  // @ts-ignore
-  decode(s) { astr('base64', s); return Uint8Array.fromBase64(s, { lastChunkHandling: 'strict' }); },
+  decode(s) {
+    astr('base64', s);
+    // @ts-ignore
+    return Uint8Array.fromBase64(s, { lastChunkHandling: 'strict' });
+  },
 } : chain(
   radix2(6),
   alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'),

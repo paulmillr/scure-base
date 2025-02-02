@@ -1,7 +1,7 @@
+import { should } from 'micro-should';
 import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
-import { should } from 'micro-should';
-import { base16, base32, base32hex, base32crockford, base64, base64url } from '../lib/esm/index.js';
+import { base16, base32, base32crockford, base32hex, base64, base64url } from '../lib/esm/index.js';
 
 const BASE16_VECTORS = [
   ['', ''],
@@ -150,17 +150,20 @@ const BASE64_VECTORS = [
 
 const BASE64_BAD = [
   'A===',
-  '+/+=',
-  'AAAAA',
   'AA=',
   'AAAA====',
-  '=',
-  '==',
   'Zg===',
   'AAA',
   '=Zm8',
   'что',
   'M😴',
+];
+// These throw in scure-base impl, but don't throw in built-in impl
+const BASE64_BAD_NON_NATIVE = [
+  '+/+=',
+  'AAAAA',
+  '=',
+  '==',
 ];
 
 const BASE64_URL = [['fbff', '-_8=']];
@@ -182,7 +185,7 @@ function genTests(name, coder, VECTORS, BAD_VECTORS, encode = true) {
     });
   }
   if (BAD_VECTORS) {
-    should('throw on decode base16 bad vectors', () => {
+    should(`${name}: throw on decode bad vectors`, () => {
       for (let v of BAD_VECTORS) assert.throws(() => coder.decode(v));
     });
   }

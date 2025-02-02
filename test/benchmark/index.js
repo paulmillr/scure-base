@@ -1,6 +1,5 @@
-const bench = require('micro-bmark');
-const mark = bench; // or bench.mark
-const { base64, base58, hex } = require('../..');
+const { mark: bench } = require('micro-bmark');
+const { base64, base58, hex, base64url } = require('../..');
 const stableBase64 = require('@stablelib/base64');
 const microBase58 = require('micro-base58');
 const stableHex = require('@stablelib/hex');
@@ -25,11 +24,13 @@ const CODERS = {
       node: (buf) => Buffer.from(buf).toString('base64'),
       stable: (buf) => stableBase64.encode(buf),
       scure: (buf) => base64.encode(buf),
+      scure_url: (buf) => base64url.encode(buf),
     },
     decode: {
       node: (str) => Buffer.from(str, 'base64'),
       stable: (str) => stableBase64.decode(str),
       scure: (str) => base64.decode(str),
+      scure_url: (str) => base64url.decode(str),
     },
   },
   Base58: {
@@ -64,11 +65,11 @@ const main = () =>
       console.log(`==== ${k} ====`);
       for (const [size, [samples, buf]] of Object.entries(buffers)) {
         for (const [lib, fn] of Object.entries(libs.encode))
-          await mark(`${k} (encode) ${size} ${lib}`, samples, () => fn(buf));
+          await bench(`${k} (encode) ${size} ${lib}`, samples, () => fn(buf));
         console.log();
         const str = libs.encode.scure(buf);
         for (const [lib, fn] of Object.entries(libs.decode))
-          await mark(`${k} (decode) ${size} ${lib}`, samples, () => fn(str));
+          await bench(`${k} (decode) ${size} ${lib}`, samples, () => fn(str));
         console.log();
       }
     }
