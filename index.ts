@@ -13,6 +13,12 @@ export interface BytesCoder extends Coder<Uint8Array, string> {
 function isBytes(a: unknown): a is Uint8Array {
   return a instanceof Uint8Array || (ArrayBuffer.isView(a) && a.constructor.name === 'Uint8Array');
 }
+/** Asserts something is Uint8Array. */
+function abytes(b: Uint8Array | undefined, ...lengths: number[]): void {
+  if (!isBytes(b)) throw new Error('Uint8Array expected');
+  if (lengths.length > 0 && !lengths.includes(b.length))
+    throw new Error('Uint8Array expected of length ' + lengths + ', got length=' + b.length);
+}
 
 function isArrayOf(isString: boolean, arr: any[]) {
   if (!Array.isArray(arr)) return false;
@@ -378,13 +384,26 @@ export const base32crockford: BytesCoder = chain(
   join(''),
   normalize((s: string) => s.toUpperCase().replace(/O/g, '0').replace(/[IL]/g, '1'))
 );
+
+// Built-in base64 conversion https://caniuse.com/mdn-javascript_builtins_uint8array_frombase64
+// TODO: temporarily set to false, trying to understand bugs
+const hasBase64Builtin: boolean = false ||
+  // @ts-ignore
+  typeof Uint8Array.from([]).toBase64 === 'function' && typeof Uint8Array.fromBase64 === 'function';
+// prettier-ignore
 /**
  * base64 with padding. For no padding, use `base64nopad`.
+ * Uses built-in function, when available.
  * @example
  * const b = base64.decode('A951'); // Uint8Array.from([ 3, 222, 117 ])
  * base64.encode(b); // 'A951'
  */
-export const base64: BytesCoder = chain(
+export const base64: BytesCoder = hasBase64Builtin ? {
+  // @ts-ignore
+  encode(b) { abytes(b); return b.toBase64(); },
+  // @ts-ignore
+  decode(s) { astr('base64', s); return Uint8Array.fromBase64(s, { lastChunkHandling: 'strict' }); },
+} : chain(
   radix2(6),
   alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'),
   padding(6),
@@ -398,7 +417,14 @@ export const base64nopad: BytesCoder = chain(
   alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'),
   join('')
 );
-export const base64url: BytesCoder = chain(
+
+// prettier-ignore
+export const base64url: BytesCoder = hasBase64Builtin ? {
+  // @ts-ignore
+  encode(b) { abytes(b); return b.toBase64({ alphabet: 'base64url' }); },
+  // @ts-ignore
+  decode(s) { astr('base64', s); return Uint8Array.fromBase64(s, { alphabet: 'base64url' }); },
+} : chain(
   radix2(6),
   alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'),
   padding(6),
@@ -631,22 +657,37 @@ export const utf8: BytesCoder = {
   decode: (str) => new TextEncoder().encode(str),
 };
 
+// Built-in hex conversion https://caniuse.com/mdn-javascript_builtins_uint8array_fromhex
+const hasHexBuiltin: boolean =
+  // @ts-ignore
+  typeof Uint8Array.from([]).toHex === 'function' && typeof Uint8Array.fromHex === 'function';
+// prettier-ignore
+const hexBuiltin: BytesCoder = {
+  // @ts-ignore
+  encode(data) { abytes(data); return data.toHex(); },
+  // @ts-ignore
+  decode(s) { astr('hex', s); return Uint8Array.fromHex(s); },
+};
 /**
- * hex string decoder.
+ * hex string decoder. Uses built-in function, when available.
  * @example
  * const b = hex.decode("0102ff"); // => new Uint8Array([ 1, 2, 255 ])
  * const str = hex.encode(b); // "0102ff"
  */
-export const hex: BytesCoder = chain(
-  radix2(4),
-  alphabet('0123456789abcdef'),
-  join(''),
-  normalize((s: string) => {
-    if (typeof s !== 'string' || s.length % 2 !== 0)
-      throw new TypeError(`hex.decode: expected string, got ${typeof s} with length ${s.length}`);
-    return s.toLowerCase();
-  })
-);
+export const hex: BytesCoder = hasHexBuiltin
+  ? hexBuiltin
+  : chain(
+      radix2(4),
+      alphabet('0123456789abcdef'),
+      join(''),
+      normalize((s: string) => {
+        if (typeof s !== 'string' || s.length % 2 !== 0)
+          throw new TypeError(
+            `hex.decode: expected string, got ${typeof s} with length ${s.length}`
+          );
+        return s.toLowerCase();
+      })
+    );
 
 // prettier-ignore
 const CODERS: { utf8: BytesCoder; hex: BytesCoder; base16: BytesCoder; base32: BytesCoder; base64: BytesCoder; base64url: BytesCoder; base58: BytesCoder; base58xmr: BytesCoder; } = {
