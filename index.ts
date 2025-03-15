@@ -45,7 +45,6 @@ function astr(label: string, input: unknown): input is string {
 function anumber(n: number): void {
   if (!Number.isSafeInteger(n)) throw new Error(`invalid integer: ${n}`);
 }
-export const assertNumber: typeof anumber = anumber;
 
 function aArr(input: any[]) {
   if (!Array.isArray(input)) throw new Error('array expected');
@@ -353,31 +352,96 @@ export const utils: { alphabet: typeof alphabet; chain: typeof chain; checksum: 
 // ---------------------
 
 /**
- * base16 encoding.
+ * base16 encoding from RFC 4648.
+ * @example
+ * ```js
+ * base16.encode(Uint8Array.from([0x12, 0xab]));
+ * // => '12AB'
+ * ```
  */
 export const base16: BytesCoder = chain(radix2(4), alphabet('0123456789ABCDEF'), join(''));
+
+/**
+ * base32 encoding from RFC 4648. Has padding.
+ * Use `base32nopad` for unpadded version.
+ * Also check out `base32hex`, `base32hexnopad`, `base32crockford`.
+ * @example
+ * ```js
+ * base32.encode(Uint8Array.from([0x12, 0xab]));
+ * // => 'CKVQ===='
+ * base32.decode('CKVQ====');
+ * // => Uint8Array.from([0x12, 0xab])
+ * ```
+ */
 export const base32: BytesCoder = chain(
   radix2(5),
   alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'),
   padding(5),
   join('')
 );
+
+/**
+ * base32 encoding from RFC 4648. No padding.
+ * Use `base32` for padded version.
+ * Also check out `base32hex`, `base32hexnopad`, `base32crockford`.
+ * @example
+ * ```js
+ * base32nopad.encode(Uint8Array.from([0x12, 0xab]));
+ * // => 'CKVQ'
+ * base32nopad.decode('CKVQ');
+ * // => Uint8Array.from([0x12, 0xab])
+ * ```
+ */
 export const base32nopad: BytesCoder = chain(
   radix2(5),
   alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'),
   join('')
 );
+/**
+ * base32 encoding from RFC 4648. Padded. Compared to ordinary `base32`, slightly different alphabet.
+ * Use `base32hexnopad` for unpadded version.
+ * @example
+ * ```js
+ * base32hex.encode(Uint8Array.from([0x12, 0xab]));
+ * // => '2ALG===='
+ * base32hex.decode('2ALG====');
+ * // => Uint8Array.from([0x12, 0xab])
+ * ```
+ */
 export const base32hex: BytesCoder = chain(
   radix2(5),
   alphabet('0123456789ABCDEFGHIJKLMNOPQRSTUV'),
   padding(5),
   join('')
 );
+
+/**
+ * base32 encoding from RFC 4648. No padding. Compared to ordinary `base32`, slightly different alphabet.
+ * Use `base32hex` for padded version.
+ * @example
+ * ```js
+ * base32hexnopad.encode(Uint8Array.from([0x12, 0xab]));
+ * // => '2ALG'
+ * base32hexnopad.decode('2ALG');
+ * // => Uint8Array.from([0x12, 0xab])
+ * ```
+ */
 export const base32hexnopad: BytesCoder = chain(
   radix2(5),
   alphabet('0123456789ABCDEFGHIJKLMNOPQRSTUV'),
   join('')
 );
+/**
+ * base32 encoding from RFC 4648. Doug Crockford's version.
+ * https://www.crockford.com/base32.html
+ * @example
+ * ```js
+ * base32crockford.encode(Uint8Array.from([0x12, 0xab]));
+ * // => '2ANG'
+ * base32crockford.decode('2ANG');
+ * // => Uint8Array.from([0x12, 0xab])
+ * ```
+ */
 export const base32crockford: BytesCoder = chain(
   radix2(5),
   alphabet('0123456789ABCDEFGHJKMNPQRSTVWXYZ'),
@@ -388,23 +452,27 @@ export const base32crockford: BytesCoder = chain(
 // Built-in base64 conversion https://caniuse.com/mdn-javascript_builtins_uint8array_frombase64
 // TODO: temporarily set to false, trying to understand bugs
 const hasBase64Builtin: boolean =
-  // @ts-ignore
-  typeof Uint8Array.from([]).toBase64 === 'function' && typeof Uint8Array.fromBase64 === 'function';
-// prettier-ignore
+  typeof (Uint8Array as any).from([]).toBase64 === 'function' &&
+  typeof (Uint8Array as any).fromBase64 === 'function';
+
 /**
- * base64 with padding. For no padding, use `base64nopad`.
- * Uses built-in function, when available.
+ * base64 from RFC 4648. Padded.
+ * Use `base64nopad` for unpadded version.
+ * Also check out `base64url`, `base64urlnopad`.
+ * Falls back to built-in function, when available.
  * @example
- * const b = base64.decode('A951'); // Uint8Array.from([ 3, 222, 117 ])
- * base64.encode(b); // 'A951'
+ * ```js
+ * base64.encode(Uint8Array.from([0x12, 0xab]));
+ * // => 'Eqs='
+ * base64.decode('Eqs=');
+ * // => Uint8Array.from([0x12, 0xab])
+ * ```
  */
+// prettier-ignore
 export const base64: BytesCoder = hasBase64Builtin ? {
-  // @ts-ignore
-  encode(b) { abytes(b); return b.toBase64(); },
+  encode(b) { abytes(b); return (b as any).toBase64(); },
   decode(s) {
-    astr('base64', s);
-    // @ts-ignore
-    return Uint8Array.fromBase64(s, { lastChunkHandling: 'strict' });
+    astr('base64', s); return (Uint8Array as any).fromBase64(s, { lastChunkHandling: 'strict' });
   },
 } : chain(
   radix2(6),
@@ -413,7 +481,15 @@ export const base64: BytesCoder = hasBase64Builtin ? {
   join('')
 );
 /**
- * base64 without padding.
+ * base64 from RFC 4648. No padding.
+ * Use `base64` for padded version.
+ * @example
+ * ```js
+ * base64nopad.encode(Uint8Array.from([0x12, 0xab]));
+ * // => 'Eqs'
+ * base64nopad.decode('Eqs');
+ * // => Uint8Array.from([0x12, 0xab])
+ * ```
  */
 export const base64nopad: BytesCoder = chain(
   radix2(6),
@@ -421,18 +497,40 @@ export const base64nopad: BytesCoder = chain(
   join('')
 );
 
+/**
+ * base64 from RFC 4648, using URL-safe alphabet. Padded.
+ * Use `base64urlnopad` for unpadded version.
+ * Falls back to built-in function, when available.
+ * @example
+ * ```js
+ * base64url.encode(Uint8Array.from([0x12, 0xab]));
+ * // => 'Eqs='
+ * base64url.decode('Eqs=');
+ * // => Uint8Array.from([0x12, 0xab])
+ * ```
+ */
 // prettier-ignore
 export const base64url: BytesCoder = hasBase64Builtin ? {
-  // @ts-ignore
-  encode(b) { abytes(b); return b.toBase64({ alphabet: 'base64url' }); },
-  // @ts-ignore
-  decode(s) { astr('base64', s); return Uint8Array.fromBase64(s, { alphabet: 'base64url' }); },
+  encode(b) { abytes(b); return (b as any).toBase64({ alphabet: 'base64url' }); },
+  decode(s) { astr('base64', s); return (Uint8Array as any).fromBase64(s, { alphabet: 'base64url' }); },
 } : chain(
   radix2(6),
   alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'),
   padding(6),
   join('')
 );
+
+/**
+ * base64 from RFC 4648, using URL-safe alphabet. No padding.
+ * Use `base64url` for padded version.
+ * @example
+ * ```js
+ * base64urlnopad.encode(Uint8Array.from([0x12, 0xab]));
+ * // => 'Eqs'
+ * base64urlnopad.decode('Eqs');
+ * // => Uint8Array.from([0x12, 0xab])
+ * ```
+ */
 export const base64urlnopad: BytesCoder = chain(
   radix2(6),
   alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'),
@@ -445,15 +543,26 @@ const genBase58 = /* @__NO_SIDE_EFFECTS__ */ (abc: string) =>
   chain(radix(58), alphabet(abc), join(''));
 
 /**
- * Base58: base64 without characters +, /, 0, O, I, l.
+ * base58: base64 without ambigous characters +, /, 0, O, I, l.
  * Quadratic (O(n^2)) - so, can't be used on large inputs.
+ * @example
+ * ```js
+ * base58.decode('01abcdef');
+ * // => '3UhJW'
+ * ```
  */
 export const base58: BytesCoder = genBase58(
   '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 );
+/**
+ * base58: flickr version. Check out `base58`.
+ */
 export const base58flickr: BytesCoder = genBase58(
   '123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ'
 );
+/**
+ * base58: XRP version. Check out `base58`.
+ */
 export const base58xrp: BytesCoder = genBase58(
   'rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz'
 );
@@ -462,7 +571,7 @@ export const base58xrp: BytesCoder = genBase58(
 const XMR_BLOCK_LEN = [0, 2, 3, 5, 6, 7, 9, 10, 11];
 
 /**
- * XMR version of base58.
+ * base58: XMR version. Check out `base58`.
  * Done in 8-byte blocks (which equals 11 chars in decoding). Last (non-full) block padded with '1' to size in XMR_BLOCK_LEN.
  * Block encoding significantly reduces quadratic complexity of base58.
  */
@@ -490,6 +599,10 @@ export const base58xmr: BytesCoder = {
   },
 };
 
+/**
+ * Method, which creates base58check encoder.
+ * Requires function, calculating sha256.
+ */
 export const createBase58check = (sha256: (data: Uint8Array) => Uint8Array): BytesCoder =>
   chain(
     checksum(4, (data) => sha256(sha256(data))),
@@ -641,9 +754,18 @@ function genBech32(encoding: 'bech32' | 'bech32m'): Bech32 {
 }
 
 /**
- * Low-level bech32 operations. Operates on words.
+ * bech32 from BIP 173. Operates on words.
+ * For high-level, check out scure-btc-signer:
+ * https://github.com/paulmillr/scure-btc-signer.
  */
 export const bech32: Bech32 = genBech32('bech32');
+
+/**
+ * bech32m from BIP 350. Operates on words.
+ * It was to mitigate `bech32` weaknesses.
+ * For high-level, check out scure-btc-signer:
+ * https://github.com/paulmillr/scure-btc-signer.
+ */
 export const bech32m: Bech32 = genBech32('bech32m');
 
 declare const TextEncoder: any;
@@ -652,8 +774,10 @@ declare const TextDecoder: any;
 /**
  * UTF-8-to-byte decoder. Uses built-in TextDecoder / TextEncoder.
  * @example
+ * ```js
  * const b = utf8.decode("hey"); // => new Uint8Array([ 104, 101, 121 ])
  * const str = utf8.encode(b); // "hey"
+ * ```
  */
 export const utf8: BytesCoder = {
   encode: (data) => new TextDecoder().decode(data),
@@ -662,20 +786,20 @@ export const utf8: BytesCoder = {
 
 // Built-in hex conversion https://caniuse.com/mdn-javascript_builtins_uint8array_fromhex
 const hasHexBuiltin: boolean =
-  // @ts-ignore
-  typeof Uint8Array.from([]).toHex === 'function' && typeof Uint8Array.fromHex === 'function';
+  typeof (Uint8Array as any).from([]).toHex === 'function' &&
+  typeof (Uint8Array as any).fromHex === 'function';
 // prettier-ignore
 const hexBuiltin: BytesCoder = {
-  // @ts-ignore
-  encode(data) { abytes(data); return data.toHex(); },
-  // @ts-ignore
-  decode(s) { astr('hex', s); return Uint8Array.fromHex(s); },
+  encode(data) { abytes(data); return (data as any).toHex(); },
+  decode(s) { astr('hex', s); return (Uint8Array as any).fromHex(s); },
 };
 /**
  * hex string decoder. Uses built-in function, when available.
  * @example
+ * ```js
  * const b = hex.decode("0102ff"); // => new Uint8Array([ 1, 2, 255 ])
  * const str = hex.encode(b); // "0102ff"
+ * ```
  */
 export const hex: BytesCoder = hasHexBuiltin
   ? hexBuiltin
@@ -700,16 +824,21 @@ type CoderType = keyof typeof CODERS;
 const coderTypeError =
   'Invalid encoding type. Available types: utf8, hex, base16, base32, base64, base64url, base58, base58xmr';
 
+/** @deprecated */
 export const bytesToString = (type: CoderType, bytes: Uint8Array): string => {
   if (typeof type !== 'string' || !CODERS.hasOwnProperty(type)) throw new TypeError(coderTypeError);
   if (!isBytes(bytes)) throw new TypeError('bytesToString() expects Uint8Array');
   return CODERS[type].encode(bytes);
 };
+
+/** @deprecated */
 export const str: (type: CoderType, bytes: Uint8Array) => string = bytesToString; // as in python, but for bytes only
 
+/** @deprecated */
 export const stringToBytes = (type: CoderType, str: string): Uint8Array => {
   if (!CODERS.hasOwnProperty(type)) throw new TypeError(coderTypeError);
   if (typeof str !== 'string') throw new TypeError('stringToBytes() expects string');
   return CODERS[type].decode(str);
 };
+/** @deprecated */
 export const bytes: (type: CoderType, str: string) => Uint8Array = stringToBytes;

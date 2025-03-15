@@ -75,14 +75,6 @@ import { createBase58check } from '@scure/base';
 createBase58check(sha256).encode(data);
 ```
 
-Alternative API:
-
-```js
-import { str, bytes } from '@scure/base';
-const encoded = str('base64', data);
-const data = bytes('base64', encoded);
-```
-
 ## Bech32, Bech32m and Bitcoin
 
 We provide low-level bech32 operations.
@@ -90,7 +82,15 @@ If you need high-level methods for BTC (addresses, and others), use
 [scure-btc-signer](https://github.com/paulmillr/scure-btc-signer) instead.
 
 Bitcoin addresses use both 5-bit words and bytes representations.
-They can't be parsed using `bech32.decodeToBytes`. Instead, do something this:
+They can't be parsed using `bech32.decodeToBytes`.
+
+Same applies to Lightning Invoice Protocol
+[BOLT-11](https://github.com/lightning/bolts/blob/master/11-payment-encoding.md).
+We have many tests in `./test/bip173.test.js` that serve as minimal examples of
+Bitcoin address and Lightning Invoice Protocol parsers.
+Keep in mind that you'll need to verify the examples before using them in your code.
+
+Do something like this:
 
 ```ts
 const decoded = bech32.decode(address);
@@ -101,12 +101,6 @@ const decoded = bech32.decode(address);
 const [version, ...dataW] = decoded.words;
 const program = bech32.fromWords(dataW); // actual witness program
 ```
-
-Same applies to Lightning Invoice Protocol
-[BOLT-11](https://github.com/lightning/bolts/blob/master/11-payment-encoding.md).
-We have many tests in `./test/bip173.test.js` that serve as minimal examples of
-Bitcoin address and Lightning Invoice Protocol parsers.
-Keep in mind that you'll need to verify the examples before using them in your code.
 
 ## Design rationale
 
