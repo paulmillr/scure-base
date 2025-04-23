@@ -451,9 +451,10 @@ export const base32crockford: BytesCoder = chain(
 
 // Built-in base64 conversion https://caniuse.com/mdn-javascript_builtins_uint8array_frombase64
 // TODO: temporarily set to false, trying to understand bugs
-const hasBase64Builtin: boolean =
+// prettier-ignore
+const hasBase64Builtin: boolean = /* @__PURE__ */ (() =>
   typeof (Uint8Array as any).from([]).toBase64 === 'function' &&
-  typeof (Uint8Array as any).fromBase64 === 'function';
+  typeof (Uint8Array as any).fromBase64 === 'function')();
 
 /**
  * base64 from RFC 4648. Padded.
@@ -785,9 +786,10 @@ export const utf8: BytesCoder = {
 };
 
 // Built-in hex conversion https://caniuse.com/mdn-javascript_builtins_uint8array_fromhex
-const hasHexBuiltin: boolean =
+// prettier-ignore
+const hasHexBuiltin: boolean = /* @__PURE__ */ (() =>
   typeof (Uint8Array as any).from([]).toHex === 'function' &&
-  typeof (Uint8Array as any).fromHex === 'function';
+  typeof (Uint8Array as any).fromHex === 'function')();
 // prettier-ignore
 const hexBuiltin: BytesCoder = {
   encode(data) { abytes(data); return (data as any).toHex(); },
@@ -816,11 +818,12 @@ export const hex: BytesCoder = hasHexBuiltin
       })
     );
 
+export type AllCoders = { utf8: BytesCoder; hex: BytesCoder; base16: BytesCoder; base32: BytesCoder; base64: BytesCoder; base64url: BytesCoder; base58: BytesCoder; base58xmr: BytesCoder; }
 // prettier-ignore
-const CODERS: { utf8: BytesCoder; hex: BytesCoder; base16: BytesCoder; base32: BytesCoder; base64: BytesCoder; base64url: BytesCoder; base58: BytesCoder; base58xmr: BytesCoder; } = {
+const CODERS: AllCoders = {
   utf8, hex, base16, base32, base64, base64url, base58, base58xmr
 };
-type CoderType = keyof typeof CODERS;
+type CoderType = keyof AllCoders;
 const coderTypeError =
   'Invalid encoding type. Available types: utf8, hex, base16, base32, base64, base64url, base58, base58xmr';
 
