@@ -818,12 +818,21 @@ export const hex: BytesCoder = hasHexBuiltin
       })
     );
 
-export type AllCoders = { utf8: BytesCoder; hex: BytesCoder; base16: BytesCoder; base32: BytesCoder; base64: BytesCoder; base64url: BytesCoder; base58: BytesCoder; base58xmr: BytesCoder; }
+export type SomeCoders = {
+  utf8: BytesCoder;
+  hex: BytesCoder;
+  base16: BytesCoder;
+  base32: BytesCoder;
+  base64: BytesCoder;
+  base64url: BytesCoder;
+  base58: BytesCoder;
+  base58xmr: BytesCoder;
+};
 // prettier-ignore
-const CODERS: AllCoders = {
+const CODERS: SomeCoders = {
   utf8, hex, base16, base32, base64, base64url, base58, base58xmr
 };
-type CoderType = keyof AllCoders;
+type CoderType = keyof SomeCoders;
 const coderTypeError =
   'Invalid encoding type. Available types: utf8, hex, base16, base32, base64, base64url, base58, base58xmr';
 
