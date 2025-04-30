@@ -56,7 +56,7 @@ const buffers = {
   '1 KB': [50000, new Uint8Array(1024).fill(2)],
   // '8 KB': [5000, new Uint8Array(1024 * 8).fill(3)],
   // Slow, but 100 doesn't show difference, probably opt doesn't happen or something
-  //'1 MB': [10, new Uint8Array(1024 * 1024).fill(4)],
+  // '1 MB': [10, new Uint8Array(1024 * 1024).fill(4)],
 };
 
 const main = () =>
