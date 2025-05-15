@@ -1,8 +1,16 @@
-import { deepStrictEqual, throws } from 'node:assert';
 import fc from 'fast-check';
 import { describe, should } from 'micro-should';
+import { deepStrictEqual, throws } from 'node:assert';
 import { hex } from '../lib/esm/index.js';
 import { getTypeTests } from './utils.js';
+
+function hexa() {
+  const items = '0123456789abcdef';
+  return fc.integer({ min: 0, max: 15 }).map((n) => items[n]);
+}
+function hexaString(constraints = {}) {
+  return fc.string({ ...constraints, unit: hexa() });
+}
 
 // const concatBytes = utils.concatBytes;
 const hexToBytes = hex.decode;
@@ -32,7 +40,7 @@ describe('utils', () => {
   });
   should('hexToBytes <=> bytesToHex roundtrip', () =>
     fc.assert(
-      fc.property(fc.hexaString({ minLength: 2, maxLength: 64 }), (hex) => {
+      fc.property(hexaString({ minLength: 2, maxLength: 64 }), (hex) => {
         if (hex.length % 2 !== 0) return;
         deepStrictEqual(hex, bytesToHex(hexToBytes(hex)));
         deepStrictEqual(hex, bytesToHex(hexToBytes(hex.toUpperCase())));
