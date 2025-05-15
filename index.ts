@@ -450,11 +450,18 @@ export const base32crockford: BytesCoder = chain(
 );
 
 // Built-in base64 conversion https://caniuse.com/mdn-javascript_builtins_uint8array_frombase64
-// TODO: temporarily set to false, trying to understand bugs
 // prettier-ignore
 const hasBase64Builtin: boolean = /* @__PURE__ */ (() =>
   typeof (Uint8Array as any).from([]).toBase64 === 'function' &&
   typeof (Uint8Array as any).fromBase64 === 'function')();
+
+const decodeBase64Builtin = (s: string, isUrl: boolean) => {
+  astr('base64', s);
+  const re = isUrl ? /^[A-Za-z0-9=_-]+$/ : /^[A-Za-z0-9=+/]+$/;
+  const alphabet = isUrl ? 'base64url' : 'base64';
+  if (!re.test(s)) throw new Error('invalid base64');
+  return (Uint8Array as any).fromBase64(s, { alphabet, lastChunkHandling: 'strict' });
+};
 
 /**
  * base64 from RFC 4648. Padded.
@@ -472,9 +479,7 @@ const hasBase64Builtin: boolean = /* @__PURE__ */ (() =>
 // prettier-ignore
 export const base64: BytesCoder = hasBase64Builtin ? {
   encode(b) { abytes(b); return (b as any).toBase64(); },
-  decode(s) {
-    astr('base64', s); return (Uint8Array as any).fromBase64(s, { lastChunkHandling: 'strict' });
-  },
+  decode(s) { return decodeBase64Builtin(s, false); },
 } : chain(
   radix2(6),
   alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'),
@@ -513,7 +518,7 @@ export const base64nopad: BytesCoder = chain(
 // prettier-ignore
 export const base64url: BytesCoder = hasBase64Builtin ? {
   encode(b) { abytes(b); return (b as any).toBase64({ alphabet: 'base64url' }); },
-  decode(s) { astr('base64', s); return (Uint8Array as any).fromBase64(s, { alphabet: 'base64url' }); },
+  decode(s) { return decodeBase64Builtin(s, true); },
 } : chain(
   radix2(6),
   alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'),

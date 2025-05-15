@@ -129,6 +129,12 @@ should('nopad variants: base64', () => {
   );
 });
 
+should('native base64 should ban spaces', () => {
+  assert.throws(() => {
+    base64.decode('sxJ+knIJ1hI2snFHWiQEJb   qEvknAX3vUieb0K7KmcHI=');
+  });
+});
+
 should('utils: radix2', () => {
   const t = (bits) => {
     const coder = utils.radix2(bits);
