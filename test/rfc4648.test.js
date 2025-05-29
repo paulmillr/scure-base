@@ -1,5 +1,5 @@
 import { should } from 'micro-should';
-import assert from 'node:assert';
+import { deepStrictEqual as eql, throws } from 'node:assert';
 import { Buffer } from 'node:buffer';
 import { base16, base32, base32crockford, base32hex, base64, base64url } from '../lib/esm/index.js';
 
@@ -148,23 +148,9 @@ const BASE64_VECTORS = [
   ['fbff', '+/8='],
 ];
 
-const BASE64_BAD = [
-  'A===',
-  'AA=',
-  'AAAA====',
-  'Zg===',
-  'AAA',
-  '=Zm8',
-  'что',
-  'M😴',
-];
+const BASE64_BAD = ['A===', 'AA=', 'AAAA====', 'Zg===', 'AAA', '=Zm8', 'что', 'M😴'];
 // These throw in scure-base impl, but don't throw in built-in impl
-const BASE64_BAD_NON_NATIVE = [
-  '+/+=',
-  'AAAAA',
-  '=',
-  '==',
-];
+const BASE64_BAD_NON_NATIVE = ['+/+=', 'AAAAA', '=', '=='];
 
 const BASE64_URL = [['fbff', '-_8=']];
 
@@ -172,21 +158,21 @@ function genTests(name, coder, VECTORS, BAD_VECTORS, encode = true) {
   for (const [hex, expected] of VECTORS) {
     if (encode) {
       should(`encode ${name} ${hex}`, () => {
-        assert.deepStrictEqual(coder.encode(new Uint8Array(Buffer.from(hex, 'hex'))), expected);
+        eql(coder.encode(new Uint8Array(Buffer.from(hex, 'hex'))), expected);
       });
     }
     should(`decode ${name}: ${hex}`, () => {
-      assert.deepStrictEqual(coder.decode(expected), new Uint8Array(Buffer.from(hex, 'hex')));
+      eql(coder.decode(expected), new Uint8Array(Buffer.from(hex, 'hex')));
     });
     // X=decode(encode(X))
     should(`encode/decode ${name}: ${hex}`, () => {
       const hexBytes = new Uint8Array(Buffer.from(hex, 'hex'));
-      assert.deepStrictEqual(coder.decode(coder.encode(hexBytes)), hexBytes);
+      eql(coder.decode(coder.encode(hexBytes)), hexBytes);
     });
   }
   if (BAD_VECTORS) {
     should(`${name}: throw on decode bad vectors`, () => {
-      for (let v of BAD_VECTORS) assert.throws(() => coder.decode(v));
+      for (let v of BAD_VECTORS) throws(() => coder.decode(v));
     });
   }
 }

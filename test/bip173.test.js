@@ -1,6 +1,6 @@
-import { deepStrictEqual, throws } from 'node:assert';
-import { Buffer } from 'node:buffer';
 import { describe, should } from 'micro-should';
+import { deepStrictEqual as eql, throws } from 'node:assert';
+import { Buffer } from 'node:buffer';
 import { bech32, bech32m } from '../lib/esm/index.js';
 
 const VALID = [
@@ -68,7 +68,7 @@ function decodeBtc(address) {
 describe('bip173', () => {
   describe('valid', () => {
     for (const [v, hex] of VALID) {
-      should(`valid ${v}`, () => deepStrictEqual(decodeBtc(v), hex));
+      should(`valid ${v}`, () => eql(decodeBtc(v), hex));
     }
   });
   for (const [v, description] of INVALID) {
@@ -209,7 +209,7 @@ function decodeBtc350(address) {
 describe('bip350', () => {
   describe('valid', () => {
     for (const [v, hex] of VALID_BIP350) {
-      should(`valid ${v}`, () => deepStrictEqual(decodeBtc350(v), hex));
+      should(`valid ${v}`, () => eql(decodeBtc350(v), hex));
     }
   });
   for (const [v, description] of INVALID_BIP350) {
@@ -246,14 +246,14 @@ Expire Time
   // lnbc -- mainnet
   // amount: 1
   // quantity: u (micro): multiply by 0.000001
-  deepStrictEqual(decoded.prefix, 'lnbc1u');
+  eql(decoded.prefix, 'lnbc1u');
   // signature: Bitcoin-style signature of above (520 bits), 104 words
   const sigTmp = decoded.words.slice(-104);
   const recoveryFlag = decoded.words[decoded.words.length - 1];
-  deepStrictEqual(recoveryFlag, 1, 'Recovery Flag');
+  eql(recoveryFlag, 1, 'Recovery Flag');
   const signature = bech32.fromWords(sigTmp.slice(0, -1)); // Strip recovery flag
-  deepStrictEqual(signature.length, 64);
-  deepStrictEqual(
+  eql(signature.length, 64);
+  eql(
     Buffer.from(signature).toString('hex'),
     'e6cd2cc022b71c26842e8dc56eb90dcb644e2b2f74e168ae243a3dbb04552ce651fc62849fe58a3794fed3be5ea95fa287822f3b3b8e940966875758229ca2d0',
     'Transaction Signature'
@@ -273,7 +273,7 @@ Expire Time
   };
   // timestamp: seconds-since-1970 (35 bits, big-endian), 7 words
   const ts = toInt(decoded.words.slice(0, 7));
-  deepStrictEqual(ts, 1690443449, 'Timestamp');
+  eql(ts, 1690443449, 'Timestamp');
   // zero or more tagged parts
   let words = decoded.words.slice(7, -104); // without signature && timestamp
   const tags = [];
@@ -288,9 +288,9 @@ Expire Time
   }
   // p (1): data_length 52. 256-bit SHA256 payment_hash. Preimage of this
   // provides proof of payment.
-  deepStrictEqual(tags[0].tag, 1); // tagged type: preimage
+  eql(tags[0].tag, 1); // tagged type: preimage
   const preimage = bech32.fromWords(tags[0].data);
-  deepStrictEqual(
+  eql(
     Buffer.from(preimage).toString('hex'),
     '10fa11c5de5833f6484edbc6e8770a477c5d94eae0f8de608d1ab9a13bf70f60',
     'Payment Hash'
@@ -299,40 +299,36 @@ Expire Time
   // This is used to commit to an associated description that is over 639 bytes,
   // but the transport mechanism for the description in that case is transport
   // specific and not defined here.
-  deepStrictEqual(tags[1].tag, 23);
+  eql(tags[1].tag, 23);
   const h = bech32.fromWords(tags[1].data);
-  deepStrictEqual(
+  eql(
     Buffer.from(h).toString('hex'),
     '4e6befba593232ffa53e1f148d7a9e44680eca18244b780aad60325f226b8b63',
     'Commit Hash'
   );
   // c (24): data_length variable. min_final_cltv_expiry_delta to use for the
   // last HTLC in the route. Default is 18 if not specified.
-  deepStrictEqual(tags[2].tag, 24);
-  deepStrictEqual(toInt(tags[2].data), 80);
+  eql(tags[2].tag, 24);
+  eql(toInt(tags[2].data), 80);
   // x (6): data_length variable. expiry time in seconds (big-endian). Default
   // is 3600 (1 hour) if not specified.
-  deepStrictEqual(tags[3].tag, 6);
-  deepStrictEqual(toInt(tags[3].data), 86400);
+  eql(tags[3].tag, 6);
+  eql(toInt(tags[3].data), 86400);
   // s (16): data_length 52. This 256-bit secret
   // prevents forwarding nodes from probing the payment recipient.
-  deepStrictEqual(tags[4].tag, 16);
+  eql(tags[4].tag, 16);
   // NOTE: Not shown in web decoder
-  deepStrictEqual(
+  eql(
     Buffer.from(bech32.fromWords(tags[4].data)).toString('hex'),
     '0ad8568a95a8e8133628b73e0cffb61af66acd35f19d5def67ebf8792b81f6c1',
     'Secret'
   );
   // 9 (5): data_length variable. One or more 5-bit values containing features
   // supported or required for receiving this payment. See Feature Bits.
-  deepStrictEqual(tags[5].tag, 5);
+  eql(tags[5].tag, 5);
   // NOTE: not shown in web decoder
-  deepStrictEqual(
-    Buffer.from(bech32.fromWords(tags[5].data)).toString('hex'),
-    '2420',
-    'Feature bits'
-  );
-  deepStrictEqual(tags.length, 6);
+  eql(Buffer.from(bech32.fromWords(tags[5].data)).toString('hex'), '2420', 'Feature bits');
+  eql(tags.length, 6);
 });
 
 should.runWhen(import.meta.url);

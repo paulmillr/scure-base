@@ -65,11 +65,11 @@ const main = () =>
       console.log(`==== ${k} ====`);
       for (const [size, [samples, buf]] of Object.entries(buffers)) {
         for (const [lib, fn] of Object.entries(libs.encode))
-          await bench(`${k} (encode) ${size} ${lib}`, samples, () => fn(buf));
+          await bench(`${k} (encode) ${size} ${lib}`, () => fn(buf));
         console.log();
         const str = libs.encode.scure(buf);
         for (const [lib, fn] of Object.entries(libs.decode))
-          await bench(`${k} (decode) ${size} ${lib}`, samples, () => fn(str));
+          await bench(`${k} (decode) ${size} ${lib}`, () => fn(str));
         console.log();
       }
     }

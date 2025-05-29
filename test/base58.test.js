@@ -1,8 +1,8 @@
-import assert from 'node:assert';
-import { Buffer } from 'node:buffer';
-import { should, describe } from 'micro-should';
 import { sha256 } from '@noble/hashes/sha2';
-import { base58, base58xmr, createBase58check, base58xrp } from '../lib/esm/index.js';
+import { describe, should } from 'micro-should';
+import { deepStrictEqual as eql, throws } from 'node:assert';
+import { Buffer } from 'node:buffer';
+import { base58, base58xmr, base58xrp, createBase58check } from '../lib/esm/index.js';
 import { json } from './utils.js';
 
 const VECTORS_2 = json('./vectors/base58.json');
@@ -38,15 +38,15 @@ should('base58: vectors1', () => {
     const coder = vector.isXRP ? base58xrp : base58;
 
     const encoded = coder.encode(vector.decoded);
-    assert.deepStrictEqual(encoded, vector.encoded);
-    assert.deepStrictEqual(coder.decode(encoded), vectorDecodedArr);
+    eql(encoded, vector.encoded);
+    eql(coder.decode(encoded), vectorDecodedArr);
   }
 });
 
 should('base58: vectors2', () => {
   for (const { decodedHex, encoded } of VECTORS_2) {
     const txt = hexToArray(decodedHex);
-    assert.deepStrictEqual(base58.encode(txt), encoded);
+    eql(base58.encode(txt), encoded);
   }
 });
 
@@ -55,8 +55,8 @@ describe('base58: xmr vectors', () => {
     should(`${i}`, () => {
       const decAddr = XMR_VECTORS.decodedAddrs[i];
       const validAddr = XMR_VECTORS.validAddrs[i];
-      assert.deepStrictEqual(base58xmr.encode(hexToArray(decAddr)), validAddr, 'encode');
-      assert.deepStrictEqual(base58xmr.decode(validAddr), hexToArray(decAddr), 'decode');
+      eql(base58xmr.encode(hexToArray(decAddr)), validAddr, 'encode');
+      eql(base58xmr.decode(validAddr), hexToArray(decAddr), 'decode');
     });
   }
 });
@@ -66,15 +66,15 @@ const base58check = createBase58check(sha256);
 for (const v of B58CHK_VECTORS.valid) {
   should(`b58-check: decode ${v}`, () => {
     const actual = base58check.decode(v.string);
-    assert.deepStrictEqual(Buffer.from(actual).toString('hex'), v.payload);
+    eql(Buffer.from(actual).toString('hex'), v.payload);
   });
   should(`b58-check: decode ${v}`, () => {
-    assert.deepStrictEqual(base58check.encode(Buffer.from(v.payload, 'hex')), v.string);
+    eql(base58check.encode(Buffer.from(v.payload, 'hex')), v.string);
   });
 }
 for (const v of B58CHK_VECTORS.invalid) {
   should(`b58-check: decode throws on ${v.exception}`, () => {
-    assert.throws(() => base58check.decode(v.string));
+    throws(() => base58check.decode(v.string));
   });
 }
 
@@ -93,7 +93,7 @@ should('base58xmr: wrong blockLen', () => {
     '123456789AB11111111',
     '123456789ABzzzzzzzz',
   ];
-  for (const v of vectors) assert.throws(() => base58xmr.decode(v));
+  for (const v of vectors) throws(() => base58xmr.decode(v));
 });
 
 should('base58xmr: wrong base', () => {
@@ -132,7 +132,7 @@ should('base58xmr: wrong base', () => {
     '123456789ABzzzzzzzzzzz',
     'zzzzzzzzzzz11',
   ];
-  for (const v of vectors) assert.throws(() => base58xmr.decode(v));
+  for (const v of vectors) throws(() => base58xmr.decode(v));
 });
 
 should('base58xmr: wrong chars', () => {
@@ -149,7 +149,7 @@ should('base58xmr: wrong chars', () => {
     '111111111111l1111',
     '111111111111_111111111',
   ];
-  for (const v of vectors) assert.throws(() => base58xmr.decode(v));
+  for (const v of vectors) throws(() => base58xmr.decode(v));
 });
 
 should.runWhen(import.meta.url);

@@ -1,7 +1,7 @@
-import assert from 'node:assert';
 import { should } from 'micro-should';
-import { RANDOM, stats } from './utils.js';
+import { deepStrictEqual, rejects } from 'node:assert';
 import { CODERS } from './bases.test.js';
+import { RANDOM, stats } from './utils.js';
 
 const getTime = () => Number(process.hrtime.bigint());
 
@@ -79,7 +79,7 @@ async function isLinear(callback, iters = 128) {
   // Median of differences. Should be close to zero for linear functions (+/- some noise).
   const medianDifference = stats(stats(timings.map((i) => i)).difference).median;
   console.log({ medianDifference });
-  assert.deepStrictEqual(
+  deepStrictEqual(
     medianDifference < MARGIN,
     true,
     `medianDifference(${medianDifference}) should be less than ${MARGIN}`
@@ -101,7 +101,7 @@ should(
     console.log('Log10');
     await isLinear((buf) => log10(buf), 16);
     console.log('Quadratic');
-    await assert.rejects(() => isLinear((buf) => quadratic(buf), 16));
+    await rejects(() => isLinear((buf) => quadratic(buf), 16));
   })
 );
 
@@ -110,9 +110,7 @@ for (const coder in CODERS) {
     should(
       `DoS: ${coder} is quadratic :(`,
       retry(async () => {
-        await assert.rejects(() =>
-          isLinear((buf) => CODERS[coder].decode(CODERS[coder].encode(buf)), 16)
-        );
+        await rejects(() => isLinear((buf) => CODERS[coder].decode(CODERS[coder].encode(buf)), 16));
       })
     );
   } else {
