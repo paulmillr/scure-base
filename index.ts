@@ -459,7 +459,7 @@ const decodeBase64Builtin = (s: string, isUrl: boolean) => {
   astr('base64', s);
   const re = isUrl ? /^[A-Za-z0-9=_-]+$/ : /^[A-Za-z0-9=+/]+$/;
   const alphabet = isUrl ? 'base64url' : 'base64';
-  if (!re.test(s)) throw new Error('invalid base64');
+  if (s.length > 0 && !re.test(s)) throw new Error('invalid base64');
   return (Uint8Array as any).fromBase64(s, { alphabet, lastChunkHandling: 'strict' });
 };
 
