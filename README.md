@@ -4,7 +4,6 @@ Audited & minimal implementation of bech32, base64, base58, base32 & base16.
 
 - 🔒 [Audited](#security) by an independent security firm
 - 🔻 Tree-shakeable: unused code is excluded from your builds
-- 📦 ESM and common.js
 - ✍️ Written in [functional style](#design-rationale), easily composable
 - 💼 Matches specs
   - [BIP173](https://en.bitcoin.it/wiki/BIP_0173), [BIP350](https://en.bitcoin.it/wiki/BIP_0350) for bech32 / bech32m
@@ -12,7 +11,7 @@ Audited & minimal implementation of bech32, base64, base58, base32 & base16.
   - [Base58](https://www.ietf.org/archive/id/draft-msporny-base58-03.txt),
     [Base58check](https://en.bitcoin.it/wiki/Base58Check_encoding),
     [Base32 Crockford](https://www.crockford.com/base32.html)
-- 🪶 4KB gzipped
+- 🪶 4KB (gzipped)
 
 Check out [Projects using scure-base](#projects-using-scure-base).
 
@@ -28,6 +27,7 @@ Check out [Projects using scure-base](#projects-using-scure-base).
   [bip32](https://github.com/paulmillr/scure-bip32),
   [bip39](https://github.com/paulmillr/scure-bip39),
   [btc-signer](https://github.com/paulmillr/scure-btc-signer),
+  [sr25519](https://github.com/paulmillr/scure-sr25519),
   [starknet](https://github.com/paulmillr/scure-starknet)
 
 ## Usage

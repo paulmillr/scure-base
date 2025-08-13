@@ -1,8 +1,8 @@
 import fc from 'fast-check';
 import { describe, should } from 'micro-should';
 import { deepStrictEqual, throws } from 'node:assert';
-import { hex } from '../lib/esm/index.js';
-import { getTypeTests } from './utils.js';
+import { hex } from '../index.ts';
+import { getTypeTests } from './utils.ts';
 
 function hexa() {
   const items = '0123456789abcdef';

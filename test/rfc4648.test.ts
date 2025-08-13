@@ -1,7 +1,7 @@
 import { should } from 'micro-should';
 import { deepStrictEqual as eql, throws } from 'node:assert';
 import { Buffer } from 'node:buffer';
-import { base16, base32, base32crockford, base32hex, base64, base64url } from '../lib/esm/index.js';
+import { base16, base32, base32crockford, base32hex, base64, base64url } from '../index.ts';
 
 const BASE16_VECTORS = [
   ['', ''],

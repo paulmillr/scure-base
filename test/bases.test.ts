@@ -22,8 +22,8 @@ import {
   hex,
   str,
   utils,
-} from '../lib/esm/index.js';
-import { json, RANDOM } from './utils.js';
+} from '../index.ts';
+import { json, RANDOM } from './utils.ts';
 
 const base58check = createBase58check(sha256);
 const vectors = json('./vectors/base_vectors.json').v;

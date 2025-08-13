@@ -1,9 +1,9 @@
-import { sha256 } from '@noble/hashes/sha2';
+import { sha256 } from '@noble/hashes/sha2.js';
 import { describe, should } from 'micro-should';
 import { deepStrictEqual as eql, throws } from 'node:assert';
 import { Buffer } from 'node:buffer';
-import { base58, base58xmr, base58xrp, createBase58check } from '../lib/esm/index.js';
-import { json } from './utils.js';
+import { base58, base58xmr, base58xrp, createBase58check } from '../index.ts';
+import { json } from './utils.ts';
 
 const VECTORS_2 = json('./vectors/base58.json');
 // https://github.com/bigreddmachine/MoneroPy/blob/master/tests/testdata.py (BSD license)

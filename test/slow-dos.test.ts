@@ -1,10 +1,7 @@
-const assert = require('node:assert');
-const { should } = require('micro-should');
-const { RANDOM, stats } = require('../test/utils');
-
-const microBase58 = require('micro-base58');
-const nodeBase58 = require('@faustbrian/node-base58');
-const bs58 = require('bs58');
+import { should } from 'micro-should';
+import { deepStrictEqual, rejects } from 'node:assert';
+import { CODERS } from './bases.test.ts';
+import { RANDOM, stats } from './utils.ts';
 
 const getTime = () => Number(process.hrtime.bigint());
 
@@ -82,7 +79,7 @@ async function isLinear(callback, iters = 128) {
   // Median of differences. Should be close to zero for linear functions (+/- some noise).
   const medianDifference = stats(stats(timings.map((i) => i)).difference).median;
   console.log({ medianDifference });
-  assert.deepStrictEqual(
+  deepStrictEqual(
     medianDifference < MARGIN,
     true,
     `medianDifference(${medianDifference}) should be less than ${MARGIN}`
@@ -104,29 +101,25 @@ should(
     console.log('Log10');
     await isLinear((buf) => log10(buf), 16);
     console.log('Quadratic');
-    await assert.rejects(() => isLinear((buf) => quadratic(buf), 16));
+    await rejects(() => isLinear((buf) => quadratic(buf), 16));
   })
 );
 
-should(
-  `DoS: bs58 is quadratic :(`,
-  retry(async () => {
-    await assert.rejects(() => isLinear((buf) => bs58.decode(bs58.encode(buf)), 16));
-  })
-);
+for (const coder in CODERS) {
+  if (coder.startsWith('base58')) {
+    should(
+      `DoS: ${coder} is quadratic :(`,
+      retry(async () => {
+        await rejects(() => isLinear((buf) => CODERS[coder].decode(CODERS[coder].encode(buf)), 16));
+      })
+    );
+  } else {
+    should(
+      `DoS: ${coder}`,
+      retry(async () => await isLinear((buf) => CODERS[coder].decode(CODERS[coder].encode(buf))))
+    );
+  }
+}
 
-should(
-  `DoS: microBase58 is quadratic :(`,
-  retry(async () => {
-    await assert.rejects(() => isLinear((buf) => microBase58.decode(microBase58.encode(buf)), 16));
-  })
-);
-
-should(
-  `DoS: nodeBase58 is quadratic :(`,
-  retry(async () => {
-    await assert.rejects(() => isLinear((buf) => nodeBase58.decode(nodeBase58.encode(buf)), 16));
-  })
-);
-
-if (require.main === module) should.run();
+// takes ~8min
+should.runWhen(import.meta.url);

@@ -1,7 +1,7 @@
 import { describe, should } from 'micro-should';
 import { deepStrictEqual as eql, throws } from 'node:assert';
 import { Buffer } from 'node:buffer';
-import { bech32, bech32m } from '../lib/esm/index.js';
+import { bech32, bech32m } from '../index.ts';
 
 const VALID = [
   ['BC1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KV8F3T4', '751e76e8199196d454941c45d1b3a323f1433bd6'],

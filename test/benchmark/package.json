@@ -2,12 +2,13 @@
   "name": "scure-base-benchmark",
   "version": "0.0.1",
   "description": "Benchmark suite for scure-base",
+  "type": "module",
   "main": "./index.js",
   "scripts": {
     "bench": "node ./index.js"
   },
   "devDependencies": {
-    "micro-should": "0.4.0",
+    "micro-should": "0.5.3",
     "typescript": "5.5.2"
   },
   "dependencies": {

@@ -1,5 +1,10 @@
 node_modules
-/test/build/
-/lib
-/index.js
-/index.d.ts
+/*.js
+/esm
+/cjs
+*.d.ts
+*.d.ts.map
+*.js.map
+/test/build
+/test/compiled
+*.tgz

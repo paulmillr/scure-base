@@ -1,7 +1,7 @@
 import { should } from 'micro-should';
 import { deepStrictEqual as eql, throws } from 'node:assert';
 import { Buffer } from 'node:buffer';
-import { bech32, bech32m } from '../lib/esm/index.js';
+import { bech32, bech32m } from '../index.js';
 
 const BECH32_VALID = [
   { string: 'A12UEL5L', prefix: 'A', words: [] },

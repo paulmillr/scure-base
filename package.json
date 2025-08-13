@@ -3,35 +3,36 @@
   "version": "1.2.6",
   "description": "Secure, audited & 0-dep implementation of base64, bech32, base58, base32 & base16",
   "files": [
-    "lib/index.js",
-    "lib/index.js.map",
-    "lib/index.d.ts",
-    "lib/index.d.ts.map",
-    "lib/esm/index.js",
-    "lib/esm/index.js.map",
-    "lib/esm/index.d.ts",
-    "lib/esm/index.d.ts.map",
-    "lib/esm/package.json",
+    "index.js",
+    "index.js.map",
+    "index.d.ts",
+    "index.d.ts.map",
     "index.ts"
   ],
-  "main": "./lib/index.js",
-  "module": "./lib/esm/index.js",
-  "types": "./lib/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./lib/esm/index.js",
-      "require": "./lib/index.js"
-    }
+  "devDependencies": {
+    "@noble/hashes": "2.0.0-beta.4",
+    "@paulmillr/jsbt": "0.4.1",
+    "@types/node": "24.2.1",
+    "fast-check": "4.2.0",
+    "micro-bmark": "0.4.2",
+    "micro-should": "0.5.3",
+    "prettier": "3.6.2",
+    "typescript": "5.9.2"
   },
+  "type": "module",
+  "main": "./index.js",
+  "module": "./index.js",
+  "types": "./index.d.ts",
   "scripts": {
     "bench": "node test/benchmark/index.js",
-    "build": "tsc && tsc -p tsconfig.cjs.json",
-    "build:release": "npx jsbt esbuild test/build",
+    "build": "tsc",
+    "build:release": "npx --no @paulmillr/jsbt esbuild test/build",
     "lint": "prettier --check index.ts",
-    "format": "prettier --write index.ts",
-    "test": "node test/index.js",
-    "test:bun": "bun test/index.js",
-    "test:deno": "deno --allow-env --allow-read test/index.js && deno test/deno.ts"
+    "format": "prettier --write index.ts test/*.test.ts",
+    "test": "node test/index.ts",
+    "test:bun": "bun test/index.ts",
+    "test:deno": "deno --allow-env --allow-read test/index.ts && deno test/deno.ts",
+    "test:node20": "cd test; npx tsc; node compiled/test/index.js"
   },
   "sideEffects": false,
   "author": "Paul Miller (https://paulmillr.com)",
@@ -40,16 +41,6 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/paulmillr/scure-base.git"
-  },
-  "devDependencies": {
-    "@noble/hashes": "1.8.0",
-    "@paulmillr/jsbt": "0.3.3",
-    "@types/node": "22.15.23",
-    "fast-check": "4.1.1",
-    "micro-bmark": "0.4.2",
-    "micro-should": "0.5.3",
-    "prettier": "3.5.3",
-    "typescript": "5.8.3"
   },
   "keywords": [
     "bech32",

@@ -1,8 +1,8 @@
-import { sha256 } from '@noble/hashes/sha2';
+import { sha256 } from '@noble/hashes/sha2.js';
 import { readFileSync } from 'node:fs';
-import { gunzipSync } from 'node:zlib';
 import { dirname, join as joinPath } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { gunzipSync } from 'node:zlib';
 
 export const _dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -118,4 +118,5 @@ const getTypeTests = () => [
   [Symbol.for('a'), 'symbol("a")'],
 ];
 
-export { concatBytes, RANDOM, stats, getTypeTests };
+export { concatBytes, getTypeTests, RANDOM, stats };
+
