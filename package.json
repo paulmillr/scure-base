@@ -19,10 +19,6 @@
     "prettier": "3.6.2",
     "typescript": "5.9.2"
   },
-  "type": "module",
-  "main": "./index.js",
-  "module": "./index.js",
-  "types": "./index.d.ts",
   "scripts": {
     "bench": "node test/benchmark/index.js",
     "build": "tsc",
@@ -33,14 +29,6 @@
     "test:bun": "bun test/index.ts",
     "test:deno": "deno --allow-env --allow-read test/index.ts && deno test/deno.ts",
     "test:node20": "cd test; npx tsc; node compiled/test/index.js"
-  },
-  "sideEffects": false,
-  "author": "Paul Miller (https://paulmillr.com)",
-  "license": "MIT",
-  "homepage": "https://paulmillr.com/noble/#scure",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/paulmillr/scure-base.git"
   },
   "keywords": [
     "bech32",
@@ -57,5 +45,17 @@
     "base-x",
     "base"
   ],
-  "funding": "https://paulmillr.com/funding/"
+  "homepage": "https://paulmillr.com/noble/#scure",
+  "funding": "https://paulmillr.com/funding/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paulmillr/scure-base.git"
+  },
+  "type": "module",
+  "main": "index.js",
+  "module": "index.js",
+  "types": "index.d.ts",
+  "sideEffects": false,
+  "author": "Paul Miller (https://paulmillr.com)",
+  "license": "MIT"
 }

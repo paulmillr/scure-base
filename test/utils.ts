@@ -57,7 +57,7 @@ function stats(list) {
 
 // Random data, by using hash we trying to achieve uniform distribution of each byte values
 let start = new Uint8Array([1, 2, 3, 4, 5]);
-let RANDOM = new Uint8Array();
+let RANDOM = Uint8Array.of();
 // Fill with random data (1MB)
 function concatBytes(...arrays) {
   let sum = 0;
@@ -97,9 +97,9 @@ const getTypeTests = () => [
   ['0xbe', '"0xbe"'],
   ['keys', '"keys"'],
   [new String('1234'), 'String(1234)'],
-  [new Uint8Array([]), 'ui8a([])'],
-  [new Uint8Array([0]), 'ui8a([0])'],
-  [new Uint8Array([1]), 'ui8a([1])'],
+  [Uint8Array.of(), 'ui8a([])'],
+  [Uint8Array.of(0), 'ui8a([0])'],
+  [Uint8Array.of(1), 'ui8a([1])'],
   // [new Uint8Array(32).fill(1), 'ui8a(32*[1])'],
   [new Uint8Array(4096).fill(1), 'ui8a(4096*[1])'],
   [new Uint16Array(32).fill(1), 'ui16a(32*[1])'],
