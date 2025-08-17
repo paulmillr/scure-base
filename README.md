@@ -36,8 +36,6 @@ Check out [Projects using scure-base](#projects-using-scure-base).
 
 > `deno add jsr:@scure/base`
 
-> `deno doc jsr:@scure/base` # command-line documentation
-
 We support all major platforms and runtimes. The library is hybrid ESM / Common.js package.
 
 ```js
