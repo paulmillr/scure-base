@@ -14,10 +14,8 @@ function isBytes(a: unknown): a is Uint8Array {
   return a instanceof Uint8Array || (ArrayBuffer.isView(a) && a.constructor.name === 'Uint8Array');
 }
 /** Asserts something is Uint8Array. */
-function abytes(b: Uint8Array | undefined, ...lengths: number[]): void {
+function abytes(b: Uint8Array | undefined): void {
   if (!isBytes(b)) throw new Error('Uint8Array expected');
-  if (lengths.length > 0 && !lengths.includes(b.length))
-    throw new Error('Uint8Array expected of length ' + lengths + ', got length=' + b.length);
 }
 
 function isArrayOf(isString: boolean, arr: any[]) {
@@ -29,8 +27,6 @@ function isArrayOf(isString: boolean, arr: any[]) {
     return arr.every((item) => Number.isSafeInteger(item));
   }
 }
-
-// no abytes: seems to have 10% slowdown. Why?!
 
 function afn(input: Function): input is Function {
   if (typeof input !== 'function') throw new Error('function expected');
