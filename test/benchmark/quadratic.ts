@@ -1,7 +1,7 @@
 import * as nodeBase58 from '@faustbrian/node-base58';
 import * as bs58 from 'bs58';
 import * as microBase58 from 'micro-base58';
-import { should } from 'micro-should';
+import { should } from '@paulmillr/jsbt/test.js';
 import * as assert from 'node:assert';
 import { RANDOM, stats } from '../utils.ts';
 

@@ -1,5 +1,5 @@
 import fc from 'fast-check';
-import { describe, should } from 'micro-should';
+import { describe, should } from '@paulmillr/jsbt/test.js';
 import { deepStrictEqual, throws } from 'node:assert';
 import { hex } from '../index.ts';
 import { getTypeTests } from './utils.ts';

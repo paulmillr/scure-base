@@ -1,4 +1,4 @@
-import { should } from 'micro-should';
+import { should } from '@paulmillr/jsbt/test.js';
 import { deepStrictEqual, rejects } from 'node:assert';
 import { CODERS } from './bases.test.ts';
 import { RANDOM, stats } from './utils.ts';

@@ -1,9 +1,9 @@
 import * as nodeBase58 from '@faustbrian/node-base58';
+import { mark } from '@paulmillr/jsbt/bench.js';
 import * as stableBase64 from '@stablelib/base64';
 import * as stableHex from '@stablelib/hex';
 import * as bs58 from 'bs58';
 import * as microBase58 from 'micro-base58';
-import { mark } from 'micro-bmark';
 import { base58, base64, base64url, hex } from '../../index.ts';
 
 const CODERS = {
