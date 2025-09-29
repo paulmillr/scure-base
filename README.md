@@ -73,7 +73,21 @@ import { createBase58check } from '@scure/base';
 createBase58check(sha256).encode(data);
 ```
 
+
 ## Bech32, Bech32m and Bitcoin
+
+```js
+const words = bech32.toWords(Buffer.from('hello', 'utf8'));
+const addr = bech32.encode('test', words);
+console.log(addr); // "test1w508d6qejxtdg4"
+
+const { prefix, words: decoded } = bech32.decode(addr);
+console.log(prefix); // "test"
+console.log(Buffer.from(bech32.fromWords(decoded)).toString()); // "hello"
+
+console.log(bech32.decodeUnsafe('invalid')); // undefined
+
+```
 
 We provide low-level bech32 operations.
 If you need high-level methods for BTC (addresses, and others), use
