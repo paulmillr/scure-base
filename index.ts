@@ -671,6 +671,7 @@ export interface Bech32 {
     str: `${Prefix}1${string}`,
     limit?: number | false
   ): Bech32Decoded<Prefix>;
+  decode(str: string, limit?: number | false): Bech32Decoded;
   encodeFromBytes(prefix: string, bytes: Uint8Array): string;
   decodeToBytes(str: string): Bech32DecodedWithArray;
   decodeUnsafe(str: string, limit?: number | false): void | Bech32Decoded<string>;
