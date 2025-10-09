@@ -119,6 +119,65 @@ function alphabet(letters: string | string[]): Coder<number[], string[]> {
 }
 
 /**
+ * Encodes integer radix representation to Uint8Array of charcodes using alphabet and back.
+ * Could also be array of strings.
+ * @__NO_SIDE_EFFECTS__
+ */
+function alphabet32(letters: string): Coder<Uint8Array, Uint8Array> {
+  astr('alphabet', letters)
+  const lettersA = new TextEncoder().encode(letters)
+  const len = lettersA.length;
+
+  // mapping "b" to 1
+  const indexes = new Int8Array(256).fill(-1)
+  for (let i = 0; i < len; i++) {
+    const letter = lettersA[i]
+    if (letter > 128) throw new Error('alphabet: non-ascii digit')
+    if (indexes[letter] !== -1) throw new Error('alphabet: duplicate digit')
+    indexes[letter] = i
+  }
+
+  return {
+    encode: (digits: Uint8Array): Uint8Array => {
+      abytes(digits);
+      return digits.map((i) => {
+        if (i < 0 || i >= len)
+          throw new Error(
+            `alphabet.encode: digit index outside alphabet "${i}". Allowed: ${letters}`
+          );
+        return lettersA[i]!;
+      });
+    },
+    decode: (input: Uint8Array): Uint8Array => {
+      abytes(input);
+      return input.map((code): number => {
+        const i = indexes[code] as number
+        if (i < 0) throw new Error(`Unknown codepoint: "${code}". Allowed: ${letters}`);
+        return i;
+      });
+    },
+  };
+}
+
+/**
+ * @__NO_SIDE_EFFECTS__
+ */
+function charcodes(): Coder<Uint8Array, string> {
+  return {
+    encode: (from) => {
+      abytes(from);
+      return new TextDecoder().decode(from);
+    },
+    decode: (to) => {
+      astr('charcodes.decode', to);
+      const bytes = new TextEncoder().encode(to);
+      if (bytes.length !== to.length) throw new Error('Invalid characters in input')
+      return bytes
+    },
+  };
+}
+
+/**
  * @__NO_SIDE_EFFECTS__
  */
 function join(separator = ''): Coder<string[], string> {
@@ -131,6 +190,34 @@ function join(separator = ''): Coder<string[], string> {
     decode: (to) => {
       astr('join.decode', to);
       return to.split(separator);
+    },
+  };
+}
+
+/**
+ * Pad strings so it has integer number of bits
+ * @__NO_SIDE_EFFECTS__
+ */
+function strpadding(bits: number, chr = '='): Coder<string, string> {
+  anumber(bits);
+  astr('strpadding', chr);
+  return {
+    encode(data: string): string {
+      astr('strpadding.encode', data);
+      while ((data.length * bits) % 8) data += chr
+      return data
+    },
+    decode(input: string): string {
+      astr('strpadding.decode', input);
+      let end = input.length;
+      if ((end * bits) % 8)
+        throw new Error('padding: invalid, string should have whole number of bytes');
+      for (; end > 0 && input[end - 1] === chr; end--) {
+        const last = end - 1;
+        const byte = last * bits;
+        if (byte % 8 === 0) throw new Error('padding: invalid, string has too much padding');
+      }
+      return input.slice(0, end);
     },
   };
 }
@@ -262,6 +349,40 @@ function convertRadix2(data: number[], from: number, to: number, padding: boolea
   return res;
 }
 
+function convertRadix2ua(data: Uint8Array, from: number, to: number, padding: boolean): Uint8Array {
+  abytes(data);
+  if (from <= 0 || from > 32) throw new Error(`convertRadix2: wrong from=${from}`);
+  if (to <= 0 || to > 32) throw new Error(`convertRadix2: wrong to=${to}`);
+  if (radix2carry(from, to) > 32) {
+    throw new Error(
+      `convertRadix2: carry overflow from=${from} to=${to} carryBits=${radix2carry(from, to)}`
+    );
+  }
+  let carry = 0;
+  let pos = 0; // bitwise position in current element
+  const max = powers[from]!;
+  const mask = powers[to]! - 1;
+  const dataLength = data.length
+  const res = new Uint8Array(Math.ceil(dataLength * from / to))
+  let out = 0
+  for (let i = 0; i < dataLength; i++) {
+    const n = data[i] as number
+    if (n >= max) throw new Error(`convertRadix2: invalid data word=${n} from=${from}`);
+    carry = (carry << from) | n;
+    if (pos + from > 32) throw new Error(`convertRadix2: carry overflow pos=${pos} from=${from}`);
+    pos += from;
+    for (; pos >= to; pos -= to) res[out++] = ((carry >> (pos - to)) & mask) >>> 0;
+    const pow = powers[pos];
+    if (pow === undefined) throw new Error('invalid carry');
+    carry &= pow - 1; // clean carry, otherwise it will cause overflow
+  }
+  carry = (carry << (to - pos)) & mask;
+  if (!padding && pos >= from) throw new Error('Excess padding');
+  if (!padding && carry > 0) throw new Error(`Non-zero padding: ${carry}`);
+  if (padding && pos > 0) res[out++] = carry >>> 0;
+  return res.subarray(0, out)
+}
+
 /**
  * @__NO_SIDE_EFFECTS__
  */
@@ -301,6 +422,29 @@ function radix2(bits: number, revPadding = false): Coder<Uint8Array, number[]> {
     },
   };
 }
+
+/**
+ * If both bases are power of same number (like `2**8 <-> 2**64`),
+ * there is a linear algorithm. For now we have implementation for power-of-two bases only.
+ * @__NO_SIDE_EFFECTS__
+ */
+function radix2ua(bits: number, revPadding = false): Coder<Uint8Array, Uint8Array> {
+  anumber(bits);
+  if (bits <= 0 || bits > 32) throw new Error('radix2: bits should be in (0..32]');
+  if (radix2carry(8, bits) > 32 || radix2carry(bits, 8) > 32)
+    throw new Error('radix2: carry overflow');
+  return {
+    encode: (bytes: Uint8Array) => {
+      if (!isBytes(bytes)) throw new Error('radix2.encode input should be Uint8Array');
+      return convertRadix2ua(bytes, 8, bits, !revPadding);
+    },
+    decode: (digits: Uint8Array) => {
+      abytes(digits);
+      return convertRadix2ua(digits, bits, 8, revPadding);
+    },
+  };
+}
+
 
 type ArgumentTypes<F extends Function> = F extends (...args: infer A) => any ? A : never;
 function unsafeWrapper<T extends (...args: any) => any>(fn: T) {
@@ -477,10 +621,10 @@ export const base64: BytesCoder = hasBase64Builtin ? {
   encode(b) { abytes(b); return (b as any).toBase64(); },
   decode(s) { return decodeBase64Builtin(s, false); },
 } : chain(
-  radix2(6),
-  alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'),
-  padding(6),
-  join('')
+  radix2ua(6),
+  alphabet32('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'),
+  charcodes(),
+  strpadding(6),
 );
 /**
  * base64 from RFC 4648. No padding.
