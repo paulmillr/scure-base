@@ -451,11 +451,15 @@ const hasBase64Builtin: boolean = /* @__PURE__ */ (() =>
   typeof (Uint8Array as any).from([]).toBase64 === 'function' &&
   typeof (Uint8Array as any).fromBase64 === 'function')();
 
+// ASCII whitespace is U+0009 TAB, U+000A LF, U+000C FF, U+000D CR, or U+0020 SPACE
+const ASCII_WHITESPACE = /[\t\n\f\r ]/
+
 const decodeBase64Builtin = (s: string, isUrl: boolean) => {
   astr('base64', s);
-  const re = isUrl ? /^[A-Za-z0-9=_-]+$/ : /^[A-Za-z0-9=+/]+$/;
   const alphabet = isUrl ? 'base64url' : 'base64';
-  if (s.length > 0 && !re.test(s)) throw new Error('invalid base64');
+  // Per spec, .fromBase64 already throws on any other non-alphabet symbols except ASCII whitespace
+  // And checking just for whitspace makes decoding about 3x faster than a full range check
+  if (s.length > 0 && ASCII_WHITESPACE.test(s)) throw new Error('invalid base64');
   return (Uint8Array as any).fromBase64(s, { alphabet, lastChunkHandling: 'strict' });
 };
 
