@@ -91,7 +91,12 @@ function alphabet(letters: string | string[]): Coder<Uint8Array, string[]> {
   astrArr('alphabet', lettersA);
 
   // mapping "b" to 1
-  const indexes = new Map(lettersA.map((l, i) => [l, i]));
+  const indexes = new Int8Array(256).fill(-1);
+  lettersA.forEach((l, i) => {
+    const code = l.codePointAt(0)!;
+    if (code > 127 || indexes[code] !== -1) throw new Error(`Non-ascii or duplicate symbol: "${l}"`);
+    indexes[code] = i;
+  });
   return {
     encode: (digits: Uint8Array): string[] => {
       abytes(digits);
@@ -111,8 +116,9 @@ function alphabet(letters: string | string[]): Coder<Uint8Array, string[]> {
       let at = 0
       for (const letter of input) {
         astr('alphabet.decode', letter);
-        const i = indexes.get(letter);
-        if (i === undefined) throw new Error(`Unknown letter: "${letter}". Allowed: ${letters}`);
+        const c = letter.codePointAt(0)!;
+        const i = indexes[c]!;
+        if (letter.length !== 1 || c > 127 || i < 0) throw new Error(`Unknown letter: "${letter}". Allowed: ${letters}`);
         out[at++] = i;
       }
       return out;
