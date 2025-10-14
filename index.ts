@@ -48,9 +48,6 @@ function aArr(input: any[]) {
 function astrArr(label: string, input: string[]) {
   if (!isArrayOf(true, input)) throw new Error(`${label}: array of strings expected`);
 }
-function anumArr(label: string, input: number[]) {
-  if (!isArrayOf(false, input)) throw new Error(`${label}: array of numbers expected`);
-}
 
 // TODO: some recusive type inference so it would check correct order of input/output inside rest?
 // like <string, number>, <number, bytes>, <bytes, float>
@@ -87,33 +84,44 @@ function chain<T extends Chain & AsChain<T>>(...args: T): Coder<Input<First<T>>,
  * Could also be array of strings.
  * @__NO_SIDE_EFFECTS__
  */
-function alphabet(letters: string | string[]): Coder<number[], string[]> {
+function alphabet(letters: string | string[]): Coder<Uint8Array, string[]> {
   // mapping 1 to "b"
   const lettersA = typeof letters === 'string' ? letters.split('') : letters;
   const len = lettersA.length;
   astrArr('alphabet', lettersA);
 
   // mapping "b" to 1
-  const indexes = new Map(lettersA.map((l, i) => [l, i]));
+  const indexes = new Int8Array(256).fill(-1);
+  lettersA.forEach((l, i) => {
+    const code = l.codePointAt(0)!;
+    if (code > 127 || indexes[code] !== -1) throw new Error(`Non-ascii or duplicate symbol: "${l}"`);
+    indexes[code] = i;
+  });
   return {
-    encode: (digits: number[]) => {
-      aArr(digits);
-      return digits.map((i) => {
-        if (!Number.isSafeInteger(i) || i < 0 || i >= len)
+    encode: (digits: Uint8Array): string[] => {
+      abytes(digits);
+      const out = []
+      for (const i of digits) {
+        if (i >= len)
           throw new Error(
             `alphabet.encode: digit index outside alphabet "${i}". Allowed: ${letters}`
           );
-        return lettersA[i]!;
-      });
+        out.push(letters[i]!);
+      }
+      return out;
     },
-    decode: (input: string[]): number[] => {
+    decode: (input: string[]): Uint8Array => {
       aArr(input);
-      return input.map((letter) => {
+      const out = new Uint8Array(input.length);
+      let at = 0
+      for (const letter of input) {
         astr('alphabet.decode', letter);
-        const i = indexes.get(letter);
-        if (i === undefined) throw new Error(`Unknown letter: "${letter}". Allowed: ${letters}`);
-        return i;
-      });
+        const c = letter.codePointAt(0)!;
+        const i = indexes[c]!;
+        if (letter.length !== 1 || c > 127 || i < 0) throw new Error(`Unknown letter: "${letter}". Allowed: ${letters}`);
+        out[at++] = i;
+      }
+      return out;
     },
   };
 }
@@ -174,20 +182,24 @@ function normalize<T>(fn: (val: T) => T): Coder<T, T> {
 /**
  * Slow: O(n^2) time complexity
  */
-function convertRadix(data: number[], from: number, to: number): number[] {
+function convertRadix(data: Uint8Array, from: number, to: number): Uint8Array {
   // base 1 is impossible
-  if (from < 2) throw new Error(`convertRadix: invalid from=${from}, base cannot be less than 2`);
-  if (to < 2) throw new Error(`convertRadix: invalid to=${to}, base cannot be less than 2`);
-  aArr(data);
-  if (!data.length) return [];
+  if (from < 2 || from > 256) throw new Error(`convertRadix: wrong from=${from}`);
+  if (to < 2 || to > 256) throw new Error(`convertRadix: wrong to=${to}`);
+  abytes(data);
+  if (!data.length) return new Uint8Array();
   let pos = 0;
-  const res = [];
-  const digits = Array.from(data, (d) => {
-    anumber(d);
-    if (d < 0 || d >= from) throw new Error(`invalid integer: ${d}`);
+  const digits = Uint8Array.from(data, (d) => {
+    if (d >= from) throw new Error(`invalid integer: ${d}`);
     return d;
   });
   const dlen = digits.length;
+  let zeros = 0
+  while (zeros < dlen && data[zeros] === 0) zeros++
+  if (zeros === dlen) return new Uint8Array(zeros);
+  const significant = dlen - zeros;
+  const res = new Uint8Array(zeros + 1 + Math.ceil(significant * Math.log(from) / Math.log(to))); // + 1 to overshoot due to float calculation
+  let writtenLow = res.length;
   while (true) {
     let carry = 0;
     let done = true;
@@ -212,16 +224,14 @@ function convertRadix(data: number[], from: number, to: number): number[] {
       else if (!rounded) pos = i;
       else done = false;
     }
-    res.push(carry);
+    res[--writtenLow] = carry;
     if (done) break;
   }
-  for (let i = 0; i < data.length - 1 && data[i] === 0; i++) res.push(0);
-  return res.reverse();
+  writtenLow -= zeros;
+  if (writtenLow < 0) throw new Error('convertRadix: data did not fit'); // unreachable
+  return res.subarray(writtenLow);
 }
 
-const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
-const radix2carry = /* @__NO_SIDE_EFFECTS__ */ (from: number, to: number) =>
-  from + (to - gcd(from, to));
 const powers: number[] = /* @__PURE__ */ (() => {
   let res = [];
   for (let i = 0; i < 40; i++) res.push(2 ** i);
@@ -230,27 +240,25 @@ const powers: number[] = /* @__PURE__ */ (() => {
 /**
  * Implemented with numbers, because BigInt is 5x slower
  */
-function convertRadix2(data: number[], from: number, to: number, padding: boolean): number[] {
-  aArr(data);
-  if (from <= 0 || from > 32) throw new Error(`convertRadix2: wrong from=${from}`);
-  if (to <= 0 || to > 32) throw new Error(`convertRadix2: wrong to=${to}`);
-  if (radix2carry(from, to) > 32) {
-    throw new Error(
-      `convertRadix2: carry overflow from=${from} to=${to} carryBits=${radix2carry(from, to)}`
-    );
-  }
+function convertRadix2(data: Uint8Array, from: number, to: number, padding: boolean): Uint8Array {
+  abytes(data);
+  if (from <= 0 || from > 8) throw new Error(`convertRadix2: wrong from=${from}`);
+  if (to <= 0 || to > 8) throw new Error(`convertRadix2: wrong to=${to}`);
   let carry = 0;
   let pos = 0; // bitwise position in current element
   const max = powers[from]!;
   const mask = powers[to]! - 1;
-  const res: number[] = [];
+  const dataLength = data.length;
+  const bits = dataLength * from;
+  if (!Number.isSafeInteger(bits)) throw new Error('Input too large'); // math safeguard, nothing below 32 TiB should trigger this
+  const res = new Uint8Array(Math.ceil(bits / to));
+  let written = 0;
   for (const n of data) {
-    anumber(n);
     if (n >= max) throw new Error(`convertRadix2: invalid data word=${n} from=${from}`);
     carry = (carry << from) | n;
     if (pos + from > 32) throw new Error(`convertRadix2: carry overflow pos=${pos} from=${from}`);
     pos += from;
-    for (; pos >= to; pos -= to) res.push(((carry >> (pos - to)) & mask) >>> 0);
+    for (; pos >= to; pos -= to) res[written++] = ((carry >> (pos - to)) & mask) >>> 0;
     const pow = powers[pos];
     if (pow === undefined) throw new Error('invalid carry');
     carry &= pow - 1; // clean carry, otherwise it will cause overflow
@@ -258,24 +266,25 @@ function convertRadix2(data: number[], from: number, to: number, padding: boolea
   carry = (carry << (to - pos)) & mask;
   if (!padding && pos >= from) throw new Error('Excess padding');
   if (!padding && carry > 0) throw new Error(`Non-zero padding: ${carry}`);
-  if (padding && pos > 0) res.push(carry >>> 0);
-  return res;
+  if (padding && pos > 0) res[written++] = carry >>> 0;
+  if (written > res.length) throw new Error('convertRadix2: data did not fit'); // unreachable
+  return res.subarray(0, written);
 }
 
 /**
  * @__NO_SIDE_EFFECTS__
  */
-function radix(num: number): Coder<Uint8Array, number[]> {
+function radix(num: number): Coder<Uint8Array, Uint8Array> {
   anumber(num);
   const _256 = 2 ** 8;
   return {
     encode: (bytes: Uint8Array) => {
       if (!isBytes(bytes)) throw new Error('radix.encode input should be Uint8Array');
-      return convertRadix(Array.from(bytes), _256, num);
+      return convertRadix(bytes, _256, num);
     },
-    decode: (digits: number[]) => {
-      anumArr('radix.decode', digits);
-      return Uint8Array.from(convertRadix(digits, num, _256));
+    decode: (digits: Uint8Array) => {
+      if (!isBytes(digits)) throw new Error('radix.decode input should be Uint8Array');
+      return convertRadix(digits, num, _256);
     },
   };
 }
@@ -285,19 +294,17 @@ function radix(num: number): Coder<Uint8Array, number[]> {
  * there is a linear algorithm. For now we have implementation for power-of-two bases only.
  * @__NO_SIDE_EFFECTS__
  */
-function radix2(bits: number, revPadding = false): Coder<Uint8Array, number[]> {
+function radix2(bits: number, revPadding = false): Coder<Uint8Array, Uint8Array> {
   anumber(bits);
-  if (bits <= 0 || bits > 32) throw new Error('radix2: bits should be in (0..32]');
-  if (radix2carry(8, bits) > 32 || radix2carry(bits, 8) > 32)
-    throw new Error('radix2: carry overflow');
+  if (bits <= 0 || bits > 8) throw new Error('radix2: bits should be in (0..8]');
   return {
     encode: (bytes: Uint8Array) => {
       if (!isBytes(bytes)) throw new Error('radix2.encode input should be Uint8Array');
-      return convertRadix2(Array.from(bytes), 8, bits, !revPadding);
+      return convertRadix2(bytes, 8, bits, !revPadding);
     },
-    decode: (digits: number[]) => {
-      anumArr('radix2.decode', digits);
-      return Uint8Array.from(convertRadix2(digits, bits, 8, revPadding));
+    decode: (digits: Uint8Array) => {
+      if (!isBytes(digits)) throw new Error('radix2.decode input should be Uint8Array');
+      return convertRadix2(digits, bits, 8, revPadding);
     },
   };
 }
@@ -626,15 +633,15 @@ export const base58check: (sha256: (data: Uint8Array) => Uint8Array) => BytesCod
 // -----------
 export interface Bech32Decoded<Prefix extends string = string> {
   prefix: Prefix;
-  words: number[];
+  words: Uint8Array;
 }
 export interface Bech32DecodedWithArray<Prefix extends string = string> {
   prefix: Prefix;
-  words: number[];
+  words: Uint8Array;
   bytes: Uint8Array;
 }
 
-const BECH_ALPHABET: Coder<number[], string> = chain(
+const BECH_ALPHABET: Coder<Uint8Array, string> = chain(
   alphabet('qpzry9x8gf2tvdw0s3jn54khce6mua7l'),
   join('')
 );
@@ -649,7 +656,7 @@ function bech32Polymod(pre: number): number {
   return chk;
 }
 
-function bechChecksum(prefix: string, words: number[], encodingConst = 1): string {
+function bechChecksum(prefix: string, words: Uint8Array, encodingConst = 1): string {
   const len = prefix.length;
   let chk = 1;
   for (let i = 0; i < len; i++) {
@@ -662,13 +669,15 @@ function bechChecksum(prefix: string, words: number[], encodingConst = 1): strin
   for (let v of words) chk = bech32Polymod(chk) ^ v;
   for (let i = 0; i < 6; i++) chk = bech32Polymod(chk);
   chk ^= encodingConst;
-  return BECH_ALPHABET.encode(convertRadix2([chk % powers[30]!], 30, 5, false));
+  const v = chk & 0x3fffffff; // 30 bits, we need to convert to 6 5-bit values
+  const v5bit = Uint8Array.of(v >>> 25, (v >>> 20) & 0x1f, (v >>> 15) & 0x1f, (v >>> 10) & 0x1f, (v >>> 5) & 0x1f, v & 0x1f);
+  return BECH_ALPHABET.encode(v5bit);
 }
 
 export interface Bech32 {
   encode<Prefix extends string>(
     prefix: Prefix,
-    words: number[] | Uint8Array,
+    words: Uint8Array,
     limit?: number | false
   ): `${Lowercase<Prefix>}1${string}`;
   decode<Prefix extends string>(
@@ -679,9 +688,9 @@ export interface Bech32 {
   encodeFromBytes(prefix: string, bytes: Uint8Array): string;
   decodeToBytes(str: string): Bech32DecodedWithArray;
   decodeUnsafe(str: string, limit?: number | false): void | Bech32Decoded<string>;
-  fromWords(to: number[]): Uint8Array;
-  fromWordsUnsafe(to: number[]): void | Uint8Array;
-  toWords(from: Uint8Array): number[];
+  fromWords(to: Uint8Array): Uint8Array;
+  fromWordsUnsafe(to: Uint8Array): void | Uint8Array;
+  toWords(from: Uint8Array): Uint8Array;
 }
 /**
  * @__NO_SIDE_EFFECTS__
@@ -695,12 +704,11 @@ function genBech32(encoding: 'bech32' | 'bech32m'): Bech32 {
 
   function encode<Prefix extends string>(
     prefix: Prefix,
-    words: number[] | Uint8Array,
+    words: Uint8Array,
     limit: number | false = 90
   ): `${Lowercase<Prefix>}1${string}` {
     astr('bech32.encode prefix', prefix);
-    if (isBytes(words)) words = Array.from(words);
-    anumArr('bech32.encode', words);
+    if (!isBytes(words)) throw new Error('bech32.encode: input should be Uint8Array');
     const plen = prefix.length;
     if (plen === 0) throw new TypeError(`Invalid prefix length ${plen}`);
     const actualLength = plen + 7 + words.length;
