@@ -154,24 +154,14 @@ should('utils: radix', () => {
 
 should('utils: alphabet', () => {
   const a = utils.alphabet('12345');
-  const ab = utils.alphabet(['11', '2', '3', '4', '5']);
-  eql(a.encode(Uint8Array.of(1)), ['2']);
-  eql(ab.encode(Uint8Array.of(0)), ['11']);
+  const ab = utils.alphabet('A2345');
+  eql(a.encode(Uint8Array.of(1)), '2');
+  eql(ab.encode(Uint8Array.of(0)), 'A');
   eql(a.encode(Uint8Array.of(2)), ab.encode(Uint8Array.of(2)));
   throws(() => a.encode([1, 2, true, 3]));
   throws(() => a.decode(['1', 2, true]));
   throws(() => a.decode(['1', 2]));
   throws(() => a.decode(['toString']));
-});
-
-should('utils: join', () => {
-  throws(() => utils.join('1').encode(['1', 1, true]));
-});
-
-should('utils: padding', () => {
-  const coder = utils.padding(4, '=');
-  throws(() => coder.encode(['1', 1, true]));
-  throws(() => coder.decode(['1', 1, true, '=']));
 });
 
 export { CODERS };

@@ -18,16 +18,6 @@ function abytes(b: Uint8Array | undefined): void {
   if (!isBytes(b)) throw new Error('Uint8Array expected');
 }
 
-function isArrayOf(isString: boolean, arr: any[]) {
-  if (!Array.isArray(arr)) return false;
-  if (arr.length === 0) return true;
-  if (isString) {
-    return arr.every((item) => typeof item === 'string');
-  } else {
-    return arr.every((item) => Number.isSafeInteger(item));
-  }
-}
-
 function afn(input: Function): input is Function {
   if (typeof input !== 'function') throw new Error('function expected');
   return true;
@@ -40,13 +30,6 @@ function astr(label: string, input: unknown): input is string {
 
 function anumber(n: number): void {
   if (!Number.isSafeInteger(n)) throw new Error(`invalid integer: ${n}`);
-}
-
-function aArr(input: any[]) {
-  if (!Array.isArray(input)) throw new Error('array expected');
-}
-function astrArr(label: string, input: string[]) {
-  if (!isArrayOf(true, input)) throw new Error(`${label}: array of strings expected`);
 }
 
 // TODO: some recusive type inference so it would check correct order of input/output inside rest?
@@ -80,15 +63,16 @@ function chain<T extends Chain & AsChain<T>>(...args: T): Coder<Input<First<T>>,
 }
 
 /**
- * Encodes integer radix representation to array of strings using alphabet and back.
- * Could also be array of strings.
+ * Encodes integer radix representation in Uint8Array to a string in alphabet and back, with optional padding
  * @__NO_SIDE_EFFECTS__
  */
-function alphabet(letters: string | string[]): Coder<Uint8Array, string[]> {
+function alphabet(letters: string, paddingBits: number = 0, paddingChr = '='): Coder<Uint8Array, string> {
   // mapping 1 to "b"
-  const lettersA = typeof letters === 'string' ? letters.split('') : letters;
+  astr('alphabet', letters);
+  const lettersA = letters.split('');
   const len = lettersA.length;
-  astrArr('alphabet', lettersA);
+  const paddingCode = paddingChr.codePointAt(0)!;
+  if (paddingChr.length !== 1 || paddingCode > 128) throw new Error('Wrong padding char');
 
   // mapping "b" to 1
   const indexes = new Int8Array(256).fill(-1);
@@ -98,7 +82,7 @@ function alphabet(letters: string | string[]): Coder<Uint8Array, string[]> {
     indexes[code] = i;
   });
   return {
-    encode: (digits: Uint8Array): string[] => {
+    encode: (digits: Uint8Array): string => {
       abytes(digits);
       const out = []
       for (const i of digits) {
@@ -106,67 +90,34 @@ function alphabet(letters: string | string[]): Coder<Uint8Array, string[]> {
           throw new Error(
             `alphabet.encode: digit index outside alphabet "${i}". Allowed: ${letters}`
           );
-        out.push(letters[i]!);
+        out.push(lettersA[i]!);
       }
-      return out;
+      if (paddingBits > 0) {
+        while ((out.length * paddingBits) % 8) out.push(paddingChr);
+      }
+      return out.join('');
     },
-    decode: (input: string[]): Uint8Array => {
-      aArr(input);
-      const out = new Uint8Array(input.length);
+    decode: (str: string): Uint8Array => {
+      astr('alphabet.decode', str);
+      let end = str.length;
+      if (paddingBits > 0) {
+        if ((end * paddingBits) % 8)
+          throw new Error('padding: invalid, string should have whole number of bytes');
+        for (; end > 0 && str.charCodeAt(end - 1) === paddingCode; end--) {
+          const last = end - 1;
+          const byte = last * paddingBits;
+          if (byte % 8 === 0) throw new Error('padding: invalid, string has too much padding');
+        }
+      }
+      const out = new Uint8Array(end);
       let at = 0
-      for (const letter of input) {
-        astr('alphabet.decode', letter);
-        const c = letter.codePointAt(0)!;
+      for (let j = 0; j < end; j++) {
+        const c = str.charCodeAt(j)!;
         const i = indexes[c]!;
-        if (letter.length !== 1 || c > 127 || i < 0) throw new Error(`Unknown letter: "${letter}". Allowed: ${letters}`);
+        if (c > 127 || i < 0) throw new Error(`Unknown letter: "${String.fromCharCode(c)}". Allowed: ${letters}`);
         out[at++] = i;
       }
       return out;
-    },
-  };
-}
-
-/**
- * @__NO_SIDE_EFFECTS__
- */
-function join(separator = ''): Coder<string[], string> {
-  astr('join', separator);
-  return {
-    encode: (from) => {
-      astrArr('join.decode', from);
-      return from.join(separator);
-    },
-    decode: (to) => {
-      astr('join.decode', to);
-      return to.split(separator);
-    },
-  };
-}
-
-/**
- * Pad strings array so it has integer number of bits
- * @__NO_SIDE_EFFECTS__
- */
-function padding(bits: number, chr = '='): Coder<string[], string[]> {
-  anumber(bits);
-  astr('padding', chr);
-  return {
-    encode(data: string[]): string[] {
-      astrArr('padding.encode', data);
-      while ((data.length * bits) % 8) data.push(chr);
-      return data;
-    },
-    decode(input: string[]): string[] {
-      astrArr('padding.decode', input);
-      let end = input.length;
-      if ((end * bits) % 8)
-        throw new Error('padding: invalid, string should have whole number of bytes');
-      for (; end > 0 && input[end - 1] === chr; end--) {
-        const last = end - 1;
-        const byte = last * bits;
-        if (byte % 8 === 0) throw new Error('padding: invalid, string has too much padding');
-      }
-      return input.slice(0, end);
     },
   };
 }
@@ -347,8 +298,8 @@ function checksum(
 }
 
 // prettier-ignore
-export const utils: { alphabet: typeof alphabet; chain: typeof chain; checksum: typeof checksum; convertRadix: typeof convertRadix; convertRadix2: typeof convertRadix2; radix: typeof radix; radix2: typeof radix2; join: typeof join; padding: typeof padding; } = {
-  alphabet, chain, checksum, convertRadix, convertRadix2, radix, radix2, join, padding,
+export const utils: { alphabet: typeof alphabet; chain: typeof chain; checksum: typeof checksum; convertRadix: typeof convertRadix; convertRadix2: typeof convertRadix2; radix: typeof radix; radix2: typeof radix2; } = {
+  alphabet, chain, checksum, convertRadix, convertRadix2, radix, radix2,
 };
 
 // RFC 4648 aka RFC 3548
@@ -362,7 +313,7 @@ export const utils: { alphabet: typeof alphabet; chain: typeof chain; checksum: 
  * // => '12AB'
  * ```
  */
-export const base16: BytesCoder = chain(radix2(4), alphabet('0123456789ABCDEF'), join(''));
+export const base16: BytesCoder = chain(radix2(4), alphabet('0123456789ABCDEF'));
 
 /**
  * base32 encoding from RFC 4648. Has padding.
@@ -378,9 +329,7 @@ export const base16: BytesCoder = chain(radix2(4), alphabet('0123456789ABCDEF'),
  */
 export const base32: BytesCoder = chain(
   radix2(5),
-  alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'),
-  padding(5),
-  join('')
+  alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567', 5)
 );
 
 /**
@@ -397,8 +346,7 @@ export const base32: BytesCoder = chain(
  */
 export const base32nopad: BytesCoder = chain(
   radix2(5),
-  alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'),
-  join('')
+  alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567')
 );
 /**
  * base32 encoding from RFC 4648. Padded. Compared to ordinary `base32`, slightly different alphabet.
@@ -413,9 +361,7 @@ export const base32nopad: BytesCoder = chain(
  */
 export const base32hex: BytesCoder = chain(
   radix2(5),
-  alphabet('0123456789ABCDEFGHIJKLMNOPQRSTUV'),
-  padding(5),
-  join('')
+  alphabet('0123456789ABCDEFGHIJKLMNOPQRSTUV', 5)
 );
 
 /**
@@ -431,8 +377,7 @@ export const base32hex: BytesCoder = chain(
  */
 export const base32hexnopad: BytesCoder = chain(
   radix2(5),
-  alphabet('0123456789ABCDEFGHIJKLMNOPQRSTUV'),
-  join('')
+  alphabet('0123456789ABCDEFGHIJKLMNOPQRSTUV')
 );
 /**
  * base32 encoding from RFC 4648. Doug Crockford's version.
@@ -448,7 +393,6 @@ export const base32hexnopad: BytesCoder = chain(
 export const base32crockford: BytesCoder = chain(
   radix2(5),
   alphabet('0123456789ABCDEFGHJKMNPQRSTVWXYZ'),
-  join(''),
   normalize((s: string) => s.toUpperCase().replace(/O/g, '0').replace(/[IL]/g, '1'))
 );
 
@@ -489,9 +433,7 @@ export const base64: BytesCoder = hasBase64Builtin ? {
   decode(s) { return decodeBase64Builtin(s, false); },
 } : chain(
   radix2(6),
-  alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'),
-  padding(6),
-  join('')
+  alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/', 6)
 );
 /**
  * base64 from RFC 4648. No padding.
@@ -506,8 +448,7 @@ export const base64: BytesCoder = hasBase64Builtin ? {
  */
 export const base64nopad: BytesCoder = chain(
   radix2(6),
-  alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'),
-  join('')
+  alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/')
 );
 
 /**
@@ -528,9 +469,7 @@ export const base64url: BytesCoder = hasBase64Builtin ? {
   decode(s) { return decodeBase64Builtin(s, true); },
 } : chain(
   radix2(6),
-  alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'),
-  padding(6),
-  join('')
+  alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_', 6)
 );
 
 /**
@@ -546,14 +485,13 @@ export const base64url: BytesCoder = hasBase64Builtin ? {
  */
 export const base64urlnopad: BytesCoder = chain(
   radix2(6),
-  alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'),
-  join('')
+  alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_')
 );
 
 // base58 code
 // -----------
 const genBase58 = /* @__NO_SIDE_EFFECTS__ */ (abc: string) =>
-  chain(radix(58), alphabet(abc), join(''));
+  chain(radix(58), alphabet(abc));
 
 /**
  * base58: base64 without ambigous characters +, /, 0, O, I, l.
@@ -642,8 +580,7 @@ export interface Bech32DecodedWithArray<Prefix extends string = string> {
 }
 
 const BECH_ALPHABET: Coder<Uint8Array, string> = chain(
-  alphabet('qpzry9x8gf2tvdw0s3jn54khce6mua7l'),
-  join('')
+  alphabet('qpzry9x8gf2tvdw0s3jn54khce6mua7l')
 );
 
 const POLYMOD_GENERATORS = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
@@ -822,7 +759,6 @@ export const hex: BytesCoder = hasHexBuiltin
   : chain(
       radix2(4),
       alphabet('0123456789abcdef'),
-      join(''),
       normalize((s: string) => {
         if (typeof s !== 'string' || s.length % 2 !== 0)
           throw new TypeError(
