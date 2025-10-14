@@ -62,6 +62,10 @@ function chain<T extends Chain & AsChain<T>>(...args: T): Coder<Input<First<T>>,
   return { encode, decode };
 }
 
+// Their length (number of non-default args) is 0 per spec, which native engines follow
+// Slow text-encoding polyfill that we want to avoid has length = 2
+const nativeDecoder = typeof TextDecoder === 'function' && TextDecoder.length === 0 ? new TextDecoder() : null;
+
 /**
  * Encodes integer radix representation in Uint8Array to a string in alphabet and back, with optional padding
  * @__NO_SIDE_EFFECTS__
@@ -69,33 +73,45 @@ function chain<T extends Chain & AsChain<T>>(...args: T): Coder<Input<First<T>>,
 function alphabet(letters: string, paddingBits: number = 0, paddingChr = '='): Coder<Uint8Array, string> {
   // mapping 1 to "b"
   astr('alphabet', letters);
-  const lettersA = letters.split('');
-  const len = lettersA.length;
+  const letterChars = letters.split('');
+  const len = letterChars.length;
   const paddingCode = paddingChr.codePointAt(0)!;
   if (paddingChr.length !== 1 || paddingCode > 128) throw new Error('Wrong padding char');
 
   // mapping "b" to 1
   const indexes = new Int8Array(256).fill(-1);
-  lettersA.forEach((l, i) => {
+  const letterCodes = new Int8Array(256).fill(-1);
+  letterChars.forEach((l, i) => {
     const code = l.codePointAt(0)!;
     if (code > 127 || indexes[code] !== -1) throw new Error(`Non-ascii or duplicate symbol: "${l}"`);
     indexes[code] = i;
+    letterCodes[i] = code;
   });
   return {
     encode: (digits: Uint8Array): string => {
       abytes(digits);
-      const out = []
-      for (const i of digits) {
-        if (i >= len)
-          throw new Error(
-            `alphabet.encode: digit index outside alphabet "${i}". Allowed: ${letters}`
-          );
-        out.push(lettersA[i]!);
+      let out
+      const length = digits.length
+      if (nativeDecoder) {
+        const codes = new Uint8Array(length);
+        for (let i = 0; i < length; i++) {
+          const c = letterCodes[digits[i]!]!;
+          if (c < 0) throw new Error( `alphabet.encode: digit index outside alphabet "${digits[i]}". Allowed: ${letters}`);
+          codes[i] = c;
+        }
+        out = nativeDecoder.decode(codes);
+      } else {
+        const acc = []
+        for (const d of digits) {
+          if (d >= len) throw new Error(`alphabet.encode: digit index outside alphabet "${d}". Allowed: ${letters}`);
+          acc.push(letterChars[d]!);
+        }
+        out = acc.join('');
       }
       if (paddingBits > 0) {
-        while ((out.length * paddingBits) % 8) out.push(paddingChr);
+        while ((out.length * paddingBits) % 8) out += paddingChr;
       }
-      return out.join('');
+      return out;
     },
     decode: (str: string): Uint8Array => {
       astr('alphabet.decode', str);
