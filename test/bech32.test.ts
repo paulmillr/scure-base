@@ -276,6 +276,15 @@ const VALID_WORDS = [
   },
 ];
 
+// Convert fixtures to Uint8Array
+for (const fixture of [BECH32_VALID, BECH32_INVALID_ENCODE, BECH32M_VALID, BECH32M_INVALID_ENCODE, VALID_WORDS]) {
+  for (const v of fixture) {
+    const u8 = Uint8Array.from(v.words)
+    eql(v.words, Array.from(u8))
+    v.words = u8
+  }
+}
+
 for (let v of BECH32M_VALID) {
   should(`encode ${v.prefix} ${v.words}`, () => {
     eql(bech32m.encode(v.prefix, v.words, v.limit), v.string.toLowerCase());
@@ -367,6 +376,7 @@ for (let v of VALID_WORDS) {
 
 for (let v of INVALID_WORDS) {
   should(`throw om fromWords`, () => {
+    v = Uint8Array.from(v)
     eql(bech32.fromWordsUnsafe(v), undefined);
     throws(() => bech32.fromWords(v));
   });
@@ -375,7 +385,7 @@ for (let v of INVALID_WORDS) {
 should('toWords/toWordsUnsafe accept Uint8Array', () => {
   const bytes = new Uint8Array([0x00, 0x11, 0x22, 0x33, 0xff]);
   const words = bech32.toWords(bytes);
-  eql(words, [0, 0, 8, 18, 4, 12, 31, 31]);
+  eql(words, Uint8Array.of(0, 0, 8, 18, 4, 12, 31, 31));
 });
 
 should('encode accepts Uint8Array', () => {
