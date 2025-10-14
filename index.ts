@@ -95,22 +95,27 @@ function alphabet(letters: string | string[]): Coder<Uint8Array, string[]> {
   return {
     encode: (digits: Uint8Array): string[] => {
       abytes(digits);
-      return Array.from(digits, (i) => {
+      const out = []
+      for (const i of digits) {
         if (i >= len)
           throw new Error(
             `alphabet.encode: digit index outside alphabet "${i}". Allowed: ${letters}`
           );
-        return letters[i]!;
-      });
+        out.push(letters[i]!);
+      }
+      return out;
     },
     decode: (input: string[]): Uint8Array => {
       aArr(input);
-      return Uint8Array.from(input, (letter) => {
+      const out = new Uint8Array(input.length);
+      let at = 0
+      for (const letter of input) {
         astr('alphabet.decode', letter);
         const i = indexes.get(letter);
         if (i === undefined) throw new Error(`Unknown letter: "${letter}". Allowed: ${letters}`);
-        return i;
-      });
+        out[at++] = i;
+      }
+      return out;
     },
   };
 }
