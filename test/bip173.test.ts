@@ -51,7 +51,8 @@ function decodeBtc(address) {
   // with actual witnes program words in rest
   // BIP-141: The value of the first push is called the "version byte".
   // The following byte vector pushed is called the "witness program".
-  const [ver, ...dataW] = decoded.words;
+  const [ver] = decoded.words;
+  const dataW = decoded.words.subarray(1)
   // MUST verify that the first decoded data value (the witness version)
   // is between 0 and 16, inclusive.
   if (ver < 0 || ver > 16) throw new Error('wrong version');
@@ -186,7 +187,8 @@ function decodeBtc350(address) {
   if (!decoded) throw err;
   // The human-readable part "bc"[7] for mainnet, and "tb"[8] for testnet.
   if (!['bc', 'tb'].includes(decoded.prefix)) throw new Error('Invalid prefix');
-  const [ver, ...dataW] = decoded.words;
+  const [ver] = decoded.words;
+  const dataW = decoded.words.subarray(1);
   if (isb32m && ver === 0) throw new Error('Witness program version 0 should use bech32');
   if (!isb32m && ver >= 1) throw new Error('Witness program with version >=1 should use bech32m');
   // MUST verify that the first decoded data value (the witness version)

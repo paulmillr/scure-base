@@ -125,13 +125,8 @@ should('utils: radix2', () => {
     );
   };
   throws(() => t(0));
-  for (let i = 1; i < 27; i++) t(i);
-  throws(() => t(27)); // 34 bits
-  t(28);
-  throws(() => t(29)); // 36 bits
-  throws(() => t(30)); // 36 bits
-  throws(() => t(31)); // 38 bits
-  t(32); // ok
+  for (let i = 1; i < 8; i++) t(i);
+  for (let i = 9; i < 40; i++) throws(() => t(i));
   // true is not a number
   throws(() => utils.radix2(4).decode([1, true, 1, 1]));
 });
@@ -149,37 +144,24 @@ should('utils: radix', () => {
     );
   };
   throws(() => t(1));
-  for (let i = 1; i < 46; i++) t(2 ** i);
-  for (let i = 2; i < 46; i++) t(2 ** i - 1);
-  for (let i = 1; i < 46; i++) t(2 ** i + 1);
-  // carry overflows here
-  t(35195299949887);
-  throws(() => t(35195299949887 + 1));
-  throws(() => t(2 ** i));
+  for (let i = 1; i <= 8; i++) t(2 ** i);
+  for (let i = 2; i <= 8; i++) t(2 ** i - 1);
+  for (let i = 1; i < 8; i++) t(2 ** i + 1);
+  throws(() => t(2 ** 8 + 1));
   // true is not a number
   throws(() => utils.radix(2 ** 4).decode([1, true, 1, 1]));
 });
 
 should('utils: alphabet', () => {
   const a = utils.alphabet('12345');
-  const ab = utils.alphabet(['11', '2', '3', '4', '5']);
-  eql(a.encode([1]), ['2']);
-  eql(ab.encode([0]), ['11']);
-  eql(a.encode([2]), ab.encode([2]));
+  const ab = utils.alphabet('A2345');
+  eql(a.encode(Uint8Array.of(1)), '2');
+  eql(ab.encode(Uint8Array.of(0)), 'A');
+  eql(a.encode(Uint8Array.of(2)), ab.encode(Uint8Array.of(2)));
   throws(() => a.encode([1, 2, true, 3]));
   throws(() => a.decode(['1', 2, true]));
   throws(() => a.decode(['1', 2]));
   throws(() => a.decode(['toString']));
-});
-
-should('utils: join', () => {
-  throws(() => utils.join('1').encode(['1', 1, true]));
-});
-
-should('utils: padding', () => {
-  const coder = utils.padding(4, '=');
-  throws(() => coder.encode(['1', 1, true]));
-  throws(() => coder.decode(['1', 1, true, '=']));
 });
 
 export { CODERS };
