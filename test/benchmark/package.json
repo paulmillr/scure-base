@@ -8,8 +8,7 @@
     "bench": "node ./index.js"
   },
   "devDependencies": {
-    "micro-should": "0.5.3",
-    "typescript": "5.5.2"
+    "typescript": "5.9.2"
   },
   "dependencies": {
     "@faustbrian/node-base58": "1.0.0",

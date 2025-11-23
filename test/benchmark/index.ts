@@ -1,5 +1,5 @@
 import * as nodeBase58 from '@faustbrian/node-base58';
-import { mark } from '@paulmillr/jsbt/bench.js';
+import bench from '@paulmillr/jsbt/bench.js';
 import * as stableBase64 from '@stablelib/base64';
 import * as stableHex from '@stablelib/hex';
 import * as bs58 from 'bs58';
@@ -65,11 +65,11 @@ const main = () =>
       console.log(`==== ${k} ====`);
       for (const [size, buf] of Object.entries(buffers)) {
         for (const [lib, fn] of Object.entries(libs.encode))
-          await mark(`${k} (encode) ${size} ${lib}`, () => fn(buf));
+          await bench(`${k} (encode) ${size} ${lib}`, () => fn(buf));
         console.log();
         const str = libs.encode.scure(buf);
         for (const [lib, fn] of Object.entries(libs.decode))
-          await mark(`${k} (decode) ${size} ${lib}`, () => fn(str));
+          await bench(`${k} (decode) ${size} ${lib}`, () => fn(str));
         console.log();
       }
     }
