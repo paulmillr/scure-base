@@ -1,7 +1,7 @@
 import fc from 'fast-check';
 import { describe, should } from '@paulmillr/jsbt/test.js';
 import { deepStrictEqual, throws } from 'node:assert';
-import { hex } from '../index.ts';
+import { hex, utils } from '../index.ts';
 import { getTypeTests } from './utils.ts';
 
 function hexa() {
@@ -49,6 +49,27 @@ describe('utils', () => {
       })
     )
   );
+  should('validator constructors', () => {
+    throws(() => utils.alphabet('abc').encode('x' as any), TypeError);
+    throws(() => utils.join(1 as any), TypeError);
+    throws(() => utils.join().encode([1] as any), TypeError);
+    throws(() => utils.join().decode(1 as any), TypeError);
+    throws(() => utils.padding('5' as any), TypeError);
+    throws(() => utils.padding(5, 1 as any), TypeError);
+    throws(() => utils.convertRadix([1], 1, 10), RangeError);
+    throws(() => utils.convertRadix([1], 10, 1), RangeError);
+    throws(() => utils.convertRadix2([1], 0, 8, false), RangeError);
+    throws(() => utils.convertRadix2([1], 8, 33, false), RangeError);
+    throws(() => utils.radix('10' as any), TypeError);
+    throws(() => utils.radix(1.5 as any), RangeError);
+    throws(() => utils.radix(10).encode('x' as any), TypeError);
+    throws(() => utils.radix(10).decode(['x'] as any), TypeError);
+    throws(() => utils.radix2(0), RangeError);
+    throws(() => utils.radix2(5).encode('x' as any), TypeError);
+    throws(() => utils.checksum(1, 1 as any), TypeError);
+    throws(() => utils.checksum(1, (data) => data).encode('x' as any), TypeError);
+    throws(() => utils.checksum(1, (data) => data).decode('x' as any), TypeError);
+  });
   // should('concatBytes', () => {
   //   const a = 1;
   //   const b = 2;

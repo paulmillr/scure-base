@@ -68,8 +68,13 @@ base32hex.encode(data);
 
 base58check is a special case: you need to pass `sha256()` function:
 
+> `npm install @noble/hashes`
+
 ```js
 import { createBase58check } from '@scure/base';
+import { sha256 } from '@noble/hashes/sha2.js';
+
+const data = Uint8Array.from([1, 2, 3]);
 createBase58check(sha256).encode(data);
 ```
 
@@ -77,13 +82,15 @@ createBase58check(sha256).encode(data);
 ## Bech32, Bech32m and Bitcoin
 
 ```js
-const words = bech32.toWords(Buffer.from('hello', 'utf8'));
+import { bech32 } from '@scure/base';
+
+const words = bech32.toWords(new TextEncoder().encode('hello'));
 const addr = bech32.encode('test', words);
 console.log(addr); // "test1w508d6qejxtdg4"
 
 const { prefix, words: decoded } = bech32.decode(addr);
 console.log(prefix); // "test"
-console.log(Buffer.from(bech32.fromWords(decoded)).toString()); // "hello"
+console.log(new TextDecoder().decode(bech32.fromWords(decoded))); // "hello"
 
 console.log(bech32.decodeUnsafe('invalid')); // undefined
 
@@ -105,6 +112,9 @@ Keep in mind that you'll need to verify the examples before using them in your c
 Do something like this:
 
 ```ts
+import { bech32 } from '@scure/base';
+
+const address = bech32.encode('bc', [0, ...bech32.toWords(new Uint8Array(20))]);
 const decoded = bech32.decode(address);
 // NOTE: words in bitcoin addresses contain version as first element,
 // with actual witness program words in rest
