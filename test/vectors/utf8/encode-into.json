@@ -1,0 +1,47 @@
+{
+  "source": "web-platform-tests/wpt encoding/encodeInto.any.js @ ac2702c221740523e04191b2fb232b53d5f84e71",
+  "cases": [
+    {
+      "input": "Hi",
+      "read": 0,
+      "destinationLength": 0,
+      "written": []
+    },
+    {
+      "input": "A",
+      "read": 1,
+      "destinationLength": 10,
+      "written": [65]
+    },
+    {
+      "input": "𝌆",
+      "read": 2,
+      "destinationLength": 4,
+      "written": [240, 157, 140, 134]
+    },
+    {
+      "input": "𝌆A",
+      "read": 0,
+      "destinationLength": 3,
+      "written": []
+    },
+    {
+      "input": "\ud834A\udf06A¥Hi",
+      "read": 5,
+      "destinationLength": 10,
+      "written": [239, 191, 189, 65, 239, 191, 189, 65, 194, 165]
+    },
+    {
+      "input": "A\udf06",
+      "read": 2,
+      "destinationLength": 4,
+      "written": [65, 239, 191, 189]
+    },
+    {
+      "input": "¥¥",
+      "read": 2,
+      "destinationLength": 4,
+      "written": [194, 165, 194, 165]
+    }
+  ]
+}

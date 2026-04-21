@@ -1,0 +1,23 @@
+{
+  "source": [
+    "web-platform-tests/wpt encoding/textdecoder-byte-order-marks.any.js @ ac2702c221740523e04191b2fb232b53d5f84e71",
+    "web-platform-tests/wpt encoding/textdecoder-ignorebom.any.js @ ac2702c221740523e04191b2fb232b53d5f84e71"
+  ],
+  "byte_order_marks": {
+    "encoding": "utf-8",
+    "bom": [239, 187, 191],
+    "bytes": [122, 194, 162, 230, 176, 180, 240, 157, 132, 158, 244, 143, 191, 189],
+    "decoded": "z¢水𝄞􏿽",
+    "wrong_boms_as_garbage": {
+      "utf-16le": [255, 254],
+      "utf-16be": [254, 255]
+    }
+  },
+  "ignore_bom": {
+    "encoding": "utf-8",
+    "bytes": [239, 187, 191, 97, 98, 99],
+    "decoded_default": "abc",
+    "decoded_ignore_bom_true": "﻿abc"
+  }
+}
+

@@ -66,6 +66,8 @@ describe('utils', () => {
     throws(() => utils.radix(10).decode(['x'] as any), TypeError);
     throws(() => utils.radix2(0), RangeError);
     throws(() => utils.radix2(5).encode('x' as any), TypeError);
+    throws(() => utils.checksum(0, (data) => data), RangeError);
+    throws(() => utils.checksum(-1, (data) => data), RangeError);
     throws(() => utils.checksum(1, 1 as any), TypeError);
     throws(() => utils.checksum(1, (data) => data).encode('x' as any), TypeError);
     throws(() => utils.checksum(1, (data) => data).decode('x' as any), TypeError);

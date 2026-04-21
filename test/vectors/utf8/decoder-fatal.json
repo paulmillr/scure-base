@@ -1,0 +1,46 @@
+{
+  "source": "web-platform-tests/wpt encoding/textdecoder-fatal.any.js @ ac2702c221740523e04191b2fb232b53d5f84e71",
+  "encoding": "utf-8",
+  "fatal_invalid": [
+    { "name": "invalid code", "input": [255] },
+    { "name": "ends early", "input": [192] },
+    { "name": "ends early 2", "input": [224] },
+    { "name": "invalid trail", "input": [192, 0] },
+    { "name": "invalid trail 2", "input": [192, 192] },
+    { "name": "invalid trail 3", "input": [224, 0] },
+    { "name": "invalid trail 4", "input": [224, 192] },
+    { "name": "invalid trail 5", "input": [224, 128, 0] },
+    { "name": "invalid trail 6", "input": [224, 128, 192] },
+    { "name": "> 0x10FFFF", "input": [252, 128, 128, 128, 128, 128] },
+    { "name": "obsolete lead byte", "input": [254, 128, 128, 128, 128, 128] },
+    { "name": "overlong U+0000 - 2 bytes", "input": [192, 128] },
+    { "name": "overlong U+0000 - 3 bytes", "input": [224, 128, 128] },
+    { "name": "overlong U+0000 - 4 bytes", "input": [240, 128, 128, 128] },
+    { "name": "overlong U+0000 - 5 bytes", "input": [248, 128, 128, 128, 128] },
+    { "name": "overlong U+0000 - 6 bytes", "input": [252, 128, 128, 128, 128, 128] },
+    { "name": "overlong U+007F - 2 bytes", "input": [193, 191] },
+    { "name": "overlong U+007F - 3 bytes", "input": [224, 129, 191] },
+    { "name": "overlong U+007F - 4 bytes", "input": [240, 128, 129, 191] },
+    { "name": "overlong U+007F - 5 bytes", "input": [248, 128, 128, 129, 191] },
+    { "name": "overlong U+007F - 6 bytes", "input": [252, 128, 128, 128, 129, 191] },
+    { "name": "overlong U+07FF - 3 bytes", "input": [224, 159, 191] },
+    { "name": "overlong U+07FF - 4 bytes", "input": [240, 128, 159, 191] },
+    { "name": "overlong U+07FF - 5 bytes", "input": [248, 128, 128, 159, 191] },
+    { "name": "overlong U+07FF - 6 bytes", "input": [252, 128, 128, 128, 159, 191] },
+    { "name": "overlong U+FFFF - 4 bytes", "input": [240, 143, 191, 191] },
+    { "name": "overlong U+FFFF - 5 bytes", "input": [248, 128, 143, 191, 191] },
+    { "name": "overlong U+FFFF - 6 bytes", "input": [252, 128, 128, 143, 191, 191] },
+    { "name": "overlong U+10FFFF - 5 bytes", "input": [248, 132, 143, 191, 191] },
+    { "name": "overlong U+10FFFF - 6 bytes", "input": [252, 128, 132, 143, 191, 191] },
+    { "name": "lead surrogate", "input": [237, 160, 128] },
+    { "name": "trail surrogate", "input": [237, 176, 128] },
+    { "name": "surrogate pair", "input": [237, 160, 128, 237, 176, 128] }
+  ],
+  "recovery_case": {
+    "name": "Error seen with fatal does not prevent future decodes",
+    "bytes": [226, 153, 165],
+    "full": "♥",
+    "truncated_length": 2
+  }
+}
+

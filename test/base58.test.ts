@@ -78,6 +78,10 @@ for (const v of B58CHK_VECTORS.invalid) {
   });
 }
 
+should('b58-check: validators', () => {
+  throws(() => createBase58check(123 as any), TypeError);
+});
+
 should('base58xmr: wrong blockLen', () => {
   const vectors = [
     '1',
@@ -94,6 +98,11 @@ should('base58xmr: wrong blockLen', () => {
     '123456789ABzzzzzzzz',
   ];
   for (const v of vectors) throws(() => base58xmr.decode(v));
+});
+
+should('base58xmr: validators', () => {
+  throws(() => base58xmr.encode(123 as any), TypeError);
+  throws(() => base58xmr.decode(123 as any), TypeError);
 });
 
 should('base58xmr: wrong base', () => {

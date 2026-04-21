@@ -1,0 +1,67 @@
+{
+  "source": [
+    "web-platform-tests/wpt encoding/textencoder-utf16-surrogates.any.js @ ac2702c221740523e04191b2fb232b53d5f84e71",
+    "web-platform-tests/wpt encoding/api-surrogates-utf8.any.js @ ac2702c221740523e04191b2fb232b53d5f84e71"
+  ],
+  "default_input": {
+    "input": "",
+    "encoded": []
+  },
+  "cases": [
+    {
+      "name": "Sanity check",
+      "input": "abc123",
+      "expected_bytes": [97, 98, 99, 49, 50, 51],
+      "decoded_default": "abc123"
+    },
+    {
+      "name": "lone surrogate lead",
+      "input": "\ud800",
+      "expected_bytes": [239, 191, 189],
+      "decoded_default": "�"
+    },
+    {
+      "name": "lone surrogate trail",
+      "input": "\udc00",
+      "expected_bytes": [239, 191, 189],
+      "decoded_default": "�"
+    },
+    {
+      "name": "unmatched surrogate lead",
+      "input": "\ud800\u0000",
+      "expected_bytes": [239, 191, 189, 0],
+      "decoded_default": "�\u0000"
+    },
+    {
+      "name": "unmatched surrogate trail",
+      "input": "\udc00\u0000",
+      "expected_bytes": [239, 191, 189, 0],
+      "decoded_default": "�\u0000"
+    },
+    {
+      "name": "surrogate half (low), in a string",
+      "input": "abc\ud800123",
+      "expected_bytes": [97, 98, 99, 239, 191, 189, 49, 50, 51],
+      "decoded_default": "abc�123"
+    },
+    {
+      "name": "surrogate half (high), in a string",
+      "input": "abc\udc00123",
+      "expected_bytes": [97, 98, 99, 239, 191, 189, 49, 50, 51],
+      "decoded_default": "abc�123"
+    },
+    {
+      "name": "swapped surrogate pair",
+      "input": "\udc00\ud800",
+      "expected_bytes": [239, 191, 189, 239, 191, 189],
+      "decoded_default": "��"
+    },
+    {
+      "name": "properly encoded MUSICAL SYMBOL G CLEF (U+1D11E)",
+      "input": "𝄞",
+      "expected_bytes": [240, 157, 132, 158],
+      "decoded_default": "𝄞"
+    }
+  ]
+}
+

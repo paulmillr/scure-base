@@ -199,11 +199,13 @@ there is linear algorithm. For now we have implementation for power-of-two bases
 
 ## Security
 
-The library has been independently audited:
+The library has been audited:
 
-- at version 1.0.0, in Jan 2022, by [cure53](https://cure53.de)
+- at version 2.2.0, in Apr 2026, by ourselves (self-audited)
+  - Scope: everything
+  - [Changes since audit](https://github.com/paulmillr/scure-base/compare/2.2.0..main)
+- at version 1.0.0, in Jan 2022, independently, by [cure53](https://cure53.de)
   - PDFs: [online](https://cure53.de/pentest-report_hashing-libs.pdf), [offline](./audit/2022-01-05-cure53-audit-nbl2.pdf)
-  - [Changes since audit](https://github.com/paulmillr/scure-base/compare/1.0.0..main).
   - The audit has been funded by [Ethereum Foundation](https://ethereum.org/en/) with help of [Nomic Labs](https://nomiclabs.io)
 
 The library was initially developed for [js-ethereum-cryptography](https://github.com/ethereum/js-ethereum-cryptography).
