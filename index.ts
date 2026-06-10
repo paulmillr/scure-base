@@ -176,9 +176,15 @@ function astr(label: string, input: unknown): input is string {
   return true;
 }
 
-function anumber(n: number): void {
-  if (typeof n !== 'number') throw new TypeError(`number expected, got ${typeof n}`);
-  if (!Number.isSafeInteger(n)) throw new RangeError(`invalid integer: ${n}`);
+function anumber(n: number, title?: string): void {
+  if (typeof n !== 'number') {
+    if (title) throw new TypeError(`"${title}" expected number, got type=${typeof n}`);
+    throw new TypeError(`number expected, got ${typeof n}`);
+  }
+  if (!Number.isSafeInteger(n)) {
+    if (title) throw new RangeError(`"${title}" expected safe integer, got ${n}`);
+    throw new RangeError(`invalid integer: ${n}`);
+  }
 }
 
 function aArr(input: any[]) {
@@ -610,7 +616,10 @@ export const base32crockford: BytesCoder = /* @__PURE__ */ Object.freeze(
     radix2(5),
     alphabet('0123456789ABCDEFGHJKMNPQRSTVWXYZ'),
     join(''),
-    normalize((s: string) => s.toUpperCase().replace(/O/g, '0').replace(/[IL]/g, '1'))
+    normalize((s: string) => {
+      astr('base32crockford.decode', s);
+      return s.toUpperCase().replace(/O/g, '0').replace(/[IL]/g, '1');
+    })
   )
 );
 
@@ -984,6 +993,7 @@ function genBech32(encoding: 'bech32' | 'bech32m'): TRet<Bech32> {
     limit: number | false = 90
   ): `${Lowercase<Prefix>}1${string}` {
     astr('bech32.encode prefix', prefix);
+    if (limit !== false) anumber(limit, 'limit');
     if (isBytes(words)) words = Array.from(words);
     anumArr('bech32.encode', words);
     const plen = prefix.length;
@@ -1004,6 +1014,7 @@ function genBech32(encoding: 'bech32' | 'bech32m'): TRet<Bech32> {
   function decode(str: string, limit?: number | false): Bech32Decoded;
   function decode(str: string, limit: number | false = 90): Bech32Decoded {
     astr('bech32.decode input', str);
+    if (limit !== false) anumber(limit, 'limit');
     const slen = str.length;
     // Minimum length is 1-char hrp + `1` separator + 6-char checksum.
     if (slen < 8 || (limit !== false && slen > limit))
