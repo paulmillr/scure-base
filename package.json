@@ -11,14 +11,16 @@
   ],
   "devDependencies": {
     "@noble/hashes": "2.2.0",
-    "@paulmillr/jsbt": "0.6.0",
+    "@paulmillr/jsbt": "0.6.1",
     "@types/node": "25.3.0",
     "fast-check": "4.2.0",
     "prettier": "3.6.2",
     "typescript": "6.0.2"
   },
   "scripts": {
-    "bench": "node test/benchmark/index.ts",
+    "benchmark": "node benchmark/base.ts",
+    "benchmark:thirdparty": "npm --prefix benchmark/thirdparty run benchmark",
+    "benchmark:thirdparty22": "npm --prefix benchmark/thirdparty run benchmark:22",
     "build": "tsc",
     "build:release": "npx --no @paulmillr/jsbt bundle test/build",
     "check": "npx --no @paulmillr/jsbt check package.json",
