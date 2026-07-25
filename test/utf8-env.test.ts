@@ -58,4 +58,18 @@ should('utf8 env: decode falls back when TextEncoder is missing', async () => {
   });
 });
 
+should('base env: rfc4648 string building falls back without TextDecoder', async () => {
+  await withUtf8Globals({ TextEncoder: undefined, TextDecoder: undefined }, async () => {
+    const mod = await import(`../index.js?base-env=${Date.now() + 4}`);
+    // Known vectors through the String.fromCharCode path
+    eql(mod.base32.encode(Uint8Array.of(0x12, 0xab)), 'CKVQ====');
+    eql(mod.base16.encode(Uint8Array.of(0x12, 0xab)), '12AB');
+    // Round-trip with output long enough to cross the fromCharCode chunk boundary (8192)
+    const big = Uint8Array.from({ length: 8192 }, (_, i) => (i * 31 + 7) & 0xff);
+    for (const coder of [mod.base16, mod.base32, mod.base64, mod.base64url]) {
+      eql(coder.decode(coder.encode(big)), big);
+    }
+  });
+});
+
 should.runWhen(import.meta.url);

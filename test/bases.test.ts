@@ -5,6 +5,7 @@ import { Buffer } from 'node:buffer';
 import {
   __TESTS,
   ascii,
+  base16,
   base32,
   base32crockford,
   base32hex,
@@ -395,6 +396,84 @@ should('utils: radix2', () => {
   t(32); // ok
   // true is not a number
   throws(() => utils.radix2(4).decode([1, true, 1, 1]));
+});
+
+should('utils: radix2 encode size parity', () => {
+  const outcome = (fn: () => number[]) => {
+    try {
+      return { ok: true, value: fn() };
+    } catch (error) {
+      if (!(error instanceof Error)) throw error;
+      return { ok: false, name: error.name, message: error.message };
+    }
+  };
+  const widths = [...Array.from({ length: 26 }, (_, i) => i + 1), 28, 32];
+  // Dense short lengths cover every output-width residue cycle; larger inputs catch allocation drift.
+  const sizes = [...Array.from({ length: 66 }, (_, i) => i), 1024, 4097];
+  for (const bits of widths) {
+    for (const revPadding of [false, true]) {
+      const coder = utils.radix2(bits, revPadding);
+      for (const len of sizes)
+        for (const zero of [false, true]) {
+          const data = Uint8Array.from(
+            { length: len + 4 },
+            (_, i) => (zero ? 0 : i * 197 + len) & 0xff
+          ).subarray(2, len + 2);
+          eql(
+            outcome(() => coder.encode(data)),
+            outcome(() => utils.convertRadix2(Array.from(data), 8, bits, !revPadding))
+          );
+        }
+    }
+  }
+});
+
+should('fast radix2 encode size parity', () => {
+  // The large triplet leaves zero, one, and two bytes after repeated three-byte batches.
+  const sizes = [...Array.from({ length: 66 }, (_, i) => i), 4095, 4096, 4097];
+  const signedTail = Uint8Array.of(0xff, 0xff, 0xff, 0, 0);
+  for (let bits = 1; bits <= 8; bits++) {
+    const coder = __TESTS.radix2Fast(bits);
+    for (const len of sizes) {
+      const data = Uint8Array.from({ length: len + 4 }, (_, i) => (i * 197 + len) & 0xff).subarray(
+        2,
+        len + 2
+      );
+      eql(
+        coder.encode(data),
+        Uint8Array.from(utils.convertRadix2(Array.from(data), 8, bits, true))
+      );
+    }
+    eql(
+      coder.encode(signedTail),
+      Uint8Array.from(utils.convertRadix2(Array.from(signedTail), 8, bits, true))
+    );
+  }
+
+  const cases = [
+    [4, '0123456789ABCDEF', base16],
+    [5, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567', base32nopad],
+    [6, 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/', base64nopad],
+  ] as const;
+  for (const [bits, alphabet, coder] of cases) {
+    for (const len of sizes) {
+      const data = Uint8Array.from({ length: len + 4 }, (_, i) => (i * 197 + len) & 0xff).subarray(
+        2,
+        len + 2
+      );
+      const expected = utils
+        .convertRadix2(Array.from(data), 8, bits, true)
+        .map((digit) => alphabet[digit])
+        .join('');
+      const actual = coder.encode(data);
+      eql(actual, expected);
+      eql(coder.decode(actual), data);
+    }
+  }
+  throws(
+    () => __TESTS.alphabetFast('01').encode(Uint8Array.of(0, 2)),
+    /alphabet\.encode: digit index outside alphabet/
+  );
 });
 
 should('utils: radix', () => {
