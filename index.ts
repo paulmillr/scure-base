@@ -749,6 +749,7 @@ const radix58: TRet<Coder<Uint8Array, Uint8Array>> = {
     abytes(digits);
     const dlen = digits.length;
     if (dlen === 0) return new Uint8Array(0) as TRet<Uint8Array>;
+    if (dlen >= 65536) throw new Error('invalid length');
     let zeros = 0;
     while (zeros < dlen - 1 && digits[zeros] === 0) zeros++;
     // Multiply-accumulate 16-bit limbs (little-endian, `used` live) group by group,
