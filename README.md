@@ -95,7 +95,7 @@ base16.encode(data);
 base32hex.encode(data);
 ```
 
-Also, the internal export `__TESTS.base64Fallback` is identical to `base64`, but never uses native code..
+Also, the internal export `__TESTS.base64Fallback` is identical to `base64`, but never uses native code.
 
 ### base58check
 
