@@ -106,7 +106,9 @@ should(
 );
 
 for (const coder in CODERS) {
-  if (coder.startsWith('base58')) {
+  // base58xmr's 8-byte block encoding makes it linear; it used to measure quadratic
+  // anyway because decode grew its output via per-block concat, fixed since.
+  if (coder.startsWith('base58') && coder !== 'base58xmr') {
     should(
       `DoS: ${coder} is quadratic :(`,
       retry(async () => {

@@ -1,14 +1,13 @@
 import bench from '@paulmillr/jsbt/bench.js';
 import type { Bech32, BytesCoder } from '../index.ts';
-import { __TESTS, base16, base32, base58, base64, bech32, bech32m, utf8 } from '../index.ts';
+import { __TESTS, base16, base32, base58, base64, base64nopad, bech32, bech32m, utf8 } from '../index.ts';
 
-type CoderName = 'base16' | 'base32' | 'base64' | 'base58';
+type CoderName = 'base16' | 'base32' | 'base64' | 'base64nopad' | 'base58';
 type CoderSet = Record<CoderName, BytesCoder>;
-const coders: CoderSet = { base16, base32, base64, base58 };
+const coders: CoderSet = { base16, base32, base64, base64nopad, base58 };
 const sizes = {
   '32 B': 32,
-  '1 KB': 1024,
-  '64 KB': 64 * 1024,
+  '1MB': 1024 * 1024,
 };
 
 const benchOpts = (bytes?: number) => (bytes === undefined ? {} : { bytes });
@@ -67,15 +66,9 @@ async function benchBech32(name: string, codec: Bech32): Promise<void> {
   await bench(`${name} decodeToBytes`, () => codec.decodeToBytes(text), benchOpts());
 }
 
-function toyChecksum(data: Uint8Array): Uint8Array {
-  const out = new Uint8Array(4);
-  for (let i = 0; i < data.length; i++) out[i & 3] = (out[i & 3]! + data[i]! + i) & 0xff;
-  return out;
-}
-
 async function main(): Promise<void> {
-  for (const [coderName, coder] of Object.entries(coders) as [CoderName, BytesCoder][]) {
-    for (const [sizeName, size] of Object.entries(sizes)) {
+  for (const [sizeName, size] of Object.entries(sizes)) {
+    for (const [coderName, coder] of Object.entries(coders) as [CoderName, BytesCoder][]) {
       if (coderName === 'base58' && size > 1024) continue;
       const bytes = sampleBytes(size);
       const encoded = coder.encode(bytes);

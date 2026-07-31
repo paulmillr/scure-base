@@ -1,7 +1,8 @@
 import fc from 'fast-check';
 import { describe, should } from '@paulmillr/jsbt/test.js';
 import { deepStrictEqual, throws } from 'node:assert';
-import { hex, utils } from '../index.ts';
+import { __TESTS, hex } from '../index.ts';
+import { alphabetSlow, convertRadix, convertRadix2, join, paddingSlow } from './slow.ts';
 import { getTypeTests } from './utils.ts';
 
 function hexa() {
@@ -50,27 +51,32 @@ describe('utils', () => {
     )
   );
   should('validator constructors', () => {
-    throws(() => utils.alphabet('abc').encode('x' as any), TypeError);
-    throws(() => utils.join(1 as any), TypeError);
-    throws(() => utils.join().encode([1] as any), TypeError);
-    throws(() => utils.join().decode(1 as any), TypeError);
-    throws(() => utils.padding('5' as any), TypeError);
-    throws(() => utils.padding(5, 1 as any), TypeError);
-    throws(() => utils.convertRadix([1], 1, 10), RangeError);
-    throws(() => utils.convertRadix([1], 10, 1), RangeError);
-    throws(() => utils.convertRadix2([1], 0, 8, false), RangeError);
-    throws(() => utils.convertRadix2([1], 8, 33, false), RangeError);
-    throws(() => utils.radix('10' as any), TypeError);
-    throws(() => utils.radix(1.5 as any), RangeError);
-    throws(() => utils.radix(10).encode('x' as any), TypeError);
-    throws(() => utils.radix(10).decode(['x'] as any), TypeError);
-    throws(() => utils.radix2(0), RangeError);
-    throws(() => utils.radix2(5).encode('x' as any), TypeError);
-    throws(() => utils.checksum(0, (data) => data), RangeError);
-    throws(() => utils.checksum(-1, (data) => data), RangeError);
-    throws(() => utils.checksum(1, 1 as any), TypeError);
-    throws(() => utils.checksum(1, (data) => data).encode('x' as any), TypeError);
-    throws(() => utils.checksum(1, (data) => data).decode('x' as any), TypeError);
+    const { alphabet, radix58, radix2, checksum } = __TESTS;
+    // Slow reference implementations (test/slow.ts)
+    throws(() => alphabetSlow('abc').encode('x' as any), TypeError);
+    throws(() => join(1 as any), TypeError);
+    throws(() => join().encode([1] as any), TypeError);
+    throws(() => join().decode(1 as any), TypeError);
+    throws(() => paddingSlow('5' as any), TypeError);
+    throws(() => paddingSlow(5, 1 as any), TypeError);
+    throws(() => convertRadix([1], 1, 10), RangeError);
+    throws(() => convertRadix([1], 10, 1), RangeError);
+    throws(() => convertRadix2([1], 0, 8, false), RangeError);
+    throws(() => convertRadix2([1], 8, 33, false), RangeError);
+    // Fast links shipped in index.ts. No aArr guard here: bogus digits hit the
+    // undefined-table-slot check, which throws plain Error.
+    throws(() => alphabet('abc').encode('x' as any));
+    throws(() => radix58.encode('x' as any), TypeError);
+    throws(() => radix58.decode(['x'] as any), TypeError);
+    throws(() => radix58.decode(Uint8Array.of(58)), /invalid integer/);
+    throws(() => radix2(0), RangeError);
+    throws(() => radix2(9), RangeError);
+    throws(() => radix2(5).encode('x' as any), TypeError);
+    throws(() => checksum(0, (data) => data), RangeError);
+    throws(() => checksum(-1, (data) => data), RangeError);
+    throws(() => checksum(1, 1 as any), TypeError);
+    throws(() => checksum(1, (data) => data).encode('x' as any), TypeError);
+    throws(() => checksum(1, (data) => data).decode('x' as any), TypeError);
   });
   // should('concatBytes', () => {
   //   const a = 1;

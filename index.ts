@@ -138,6 +138,11 @@ export type TRet<T> = T extends unknown
         : TypedRet<T>)
   : never;
 
+// Freeze the result of a thunk. `/* @__PURE__ */ freeze(() => expr)` keeps the whole
+// initializer tree-shakable: the annotated call's only argument is a function literal,
+// so bundlers drop everything (inner chain()/alphabet() calls included) when unused.
+const freeze = <T>(fn: () => T): Readonly<T> => Object.freeze(fn());
+
 function isBytes(a: unknown): a is Uint8Array {
   // Plain `instanceof Uint8Array` is too strict for some Buffer / proxy / cross-realm cases. The
   // fallback still requires a real ArrayBuffer view, so plain JSON-deserialized
@@ -176,23 +181,11 @@ function astr(label: string, input: unknown): input is string {
   return true;
 }
 
-function anumber(n: number, title?: string): void {
-  if (typeof n !== 'number') {
-    if (title) throw new TypeError(`"${title}" expected number, got type=${typeof n}`);
-    throw new TypeError(`number expected, got ${typeof n}`);
-  }
-  if (!Number.isSafeInteger(n)) {
-    if (title) throw new RangeError(`"${title}" expected safe integer, got ${n}`);
-    throw new RangeError(`invalid integer: ${n}`);
-  }
+function anumber(n: number, title = 'number'): void {
+  if (typeof n !== 'number') throw new TypeError(`${title}: expected number, got ${typeof n}`);
+  if (!Number.isSafeInteger(n)) throw new RangeError(`${title}: expected safe integer, got ${n}`);
 }
 
-function aArr(input: any[]) {
-  if (!Array.isArray(input)) throw new TypeError('array expected');
-}
-function astrArr(label: string, input: string[]) {
-  if (!isArrayOf(true, input)) throw new TypeError(`${label}: array of strings expected`);
-}
 function anumArr(label: string, input: number[]) {
   if (!isArrayOf(false, input)) throw new TypeError(`${label}: array of numbers expected`);
 }
@@ -213,9 +206,6 @@ type AsChain<C extends Chain, Rest = Tail<C>> = {
   [K in keyof C]: Coder<Input<C[K]>, Input<K extends keyof Rest ? Rest[K] : any>>;
 };
 
-/**
- * @__NO_SIDE_EFFECTS__
- */
 function chain<T extends Chain & AsChain<T>>(...args: T): Coder<Input<First<T>>, Output<Last<T>>> {
   const id = (a: any) => a;
   // Wrap call in closure so JIT can inline calls
@@ -227,305 +217,71 @@ function chain<T extends Chain & AsChain<T>>(...args: T): Coder<Input<First<T>>,
   return { encode, decode };
 }
 
-/**
- * Encodes integer radix representation to array of strings using alphabet and back.
- * Could also be array of strings.
- * Generic version, exported as `utils.alphabet`: supports multi-char letters (like BIP-39
- * wordlists) and any digit range. The built-in codecs use the fast `alphabet` below.
- * @__NO_SIDE_EFFECTS__
- */
-function alphabetSlow(letters: string | string[]): Coder<number[], string[]> {
-  // mapping 1 to "b"
-  const lettersA = typeof letters === 'string' ? letters.split('') : letters;
-  const len = lettersA.length;
-  astrArr('alphabet', lettersA);
-
-  // mapping "b" to 1
-  const indexes = new Map(lettersA.map((l, i) => [l, i]));
-  return {
-    encode: (digits: number[]) => {
-      aArr(digits);
-      return digits.map((i) => {
-        if (!Number.isSafeInteger(i) || i < 0 || i >= len)
-          throw new Error(
-            `alphabet.encode: digit index outside alphabet "${i}". Allowed: ${letters}`
-          );
-        return lettersA[i]!;
-      });
-    },
-    decode: (input: string[]): number[] => {
-      aArr(input);
-      return input.map((letter) => {
-        astr('alphabet.decode', letter);
-        const i = indexes.get(letter);
-        if (i === undefined) throw new Error(`Unknown letter: "${letter}". Allowed: ${letters}`);
-        return i;
-      });
-    },
-  };
-}
-
-/**
- * @__NO_SIDE_EFFECTS__
- */
-function join(separator = ''): Coder<string[], string> {
-  astr('join', separator);
-  // join('') is only lossless when each chunk is already unambiguous, such as single-symbol alphabets.
-  // Multi-character tokens need a separator that cannot appear inside the chunks.
-  return {
-    encode: (from) => {
-      astrArr('join.decode', from);
-      return from.join(separator);
-    },
-    decode: (to) => {
-      astr('join.decode', to);
-      return to.split(separator);
-    },
-  };
-}
-
-/**
- * Pad strings array so it has integer number of bits.
- * Generic version, exported as `utils.padding`; the built-in codecs use the fast `padding` below.
- * @__NO_SIDE_EFFECTS__
- */
-function paddingSlow(bits: number, chr = '='): Coder<string[], string[]> {
-  anumber(bits);
-  astr('padding', chr);
-  return {
-    encode(data: string[]): string[] {
-      astrArr('padding.encode', data);
-      // Mutates the intermediate token array in place while appending pad chars.
-      // utils.padding callers that need to preserve their input should pass a copy.
-      while ((data.length * bits) % 8) data.push(chr);
-      return data;
-    },
-    decode(input: string[]): string[] {
-      astrArr('padding.decode', input);
-      let end = input.length;
-      if ((end * bits) % 8)
-        throw new Error('padding: invalid, string should have whole number of bytes');
-      for (; end > 0 && input[end - 1] === chr; end--) {
-        const last = end - 1;
-        const byte = last * bits;
-        if (byte % 8 === 0) throw new Error('padding: invalid, string has too much padding');
-      }
-      return input.slice(0, end);
-    },
-  };
-}
-
-/**
- * @__NO_SIDE_EFFECTS__
- */
 function normalize<T>(fn: (val: T) => T): Coder<T, T> {
   afn(fn);
   return { encode: (from: T) => from, decode: (to: T) => fn(to) };
 }
 
-/**
- * Slow: O(n^2) time complexity
- */
-function convertRadix(data: number[], from: number, to: number): number[] {
-  // base 1 is impossible
-  if (from < 2)
-    throw new RangeError(`convertRadix: invalid from=${from}, base cannot be less than 2`);
-  if (to < 2) throw new RangeError(`convertRadix: invalid to=${to}, base cannot be less than 2`);
-  aArr(data);
-  if (!data.length) return [];
-  let pos = 0;
-  const res = [];
-  const digits = Array.from(data, (d) => {
-    anumber(d);
-    if (d < 0 || d >= from) throw new Error(`invalid integer: ${d}`);
-    return d;
-  });
-  const dlen = digits.length;
-  while (true) {
-    let carry = 0;
-    let done = true;
-    for (let i = pos; i < dlen; i++) {
-      const digit = digits[i]!;
-      const fromCarry = from * carry;
-      const digitBase = fromCarry + digit;
-      if (
-        !Number.isSafeInteger(digitBase) ||
-        fromCarry / from !== carry ||
-        digitBase - digit !== fromCarry
-      ) {
-        throw new Error('convertRadix: carry overflow');
-      }
-      const div = digitBase / to;
-      carry = digitBase % to;
-      const rounded = Math.floor(div);
-      digits[i] = rounded;
-      if (!Number.isSafeInteger(rounded) || rounded * to + carry !== digitBase)
-        throw new Error('convertRadix: carry overflow');
-      if (!done) continue;
-      else if (!rounded) pos = i;
-      else done = false;
-    }
-    res.push(carry);
-    if (done) break;
-  }
-  // Preserve explicit leading zero digits so callers like base58 keep zero-prefix semantics.
-  for (let i = 0; i < data.length - 1 && data[i] === 0; i++) res.push(0);
-  return res.reverse();
-}
-
-const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
-// Maximum carry width before the `pos` cycle repeats.
-// Residues advance in gcd(from, to) steps, so the largest pre-drain width is from + (to - gcd).
-const radix2carry = /* @__NO_SIDE_EFFECTS__ */ (from: number, to: number) =>
-  from + (to - gcd(from, to));
 const powers: number[] = /* @__PURE__ */ (() => {
   let res = [];
   for (let i = 0; i < 40; i++) res.push(2 ** i);
   return res;
 })();
-/**
- * Implemented with numbers, because BigInt is 5x slower
- */
-function convertRadix2(data: number[], from: number, to: number, padding: boolean): number[] {
-  aArr(data);
-  if (from <= 0 || from > 32) throw new RangeError(`convertRadix2: wrong from=${from}`);
-  if (to <= 0 || to > 32) throw new RangeError(`convertRadix2: wrong to=${to}`);
-  if (radix2carry(from, to) > 32) {
-    throw new Error(
-      `convertRadix2: carry overflow from=${from} to=${to} carryBits=${radix2carry(from, to)}`
-    );
-  }
-  let carry = 0;
-  let pos = 0; // bitwise position in current element
-  const max = powers[from]!;
-  const mask = powers[to]! - 1;
-  const res: number[] = [];
-  for (const n of data) {
-    anumber(n);
-    if (n >= max) throw new Error(`convertRadix2: invalid data word=${n} from=${from}`);
-    carry = (carry << from) | n;
-    if (pos + from > 32) throw new Error(`convertRadix2: carry overflow pos=${pos} from=${from}`);
-    pos += from;
-    for (; pos >= to; pos -= to) res.push(((carry >> (pos - to)) & mask) >>> 0);
-    const pow = powers[pos];
-    if (pow === undefined) throw new Error('invalid carry');
-    carry &= pow - 1; // clean carry, otherwise it will cause overflow
-  }
-  carry = (carry << (to - pos)) & mask;
-  // Canonical decode paths reject leftover whole input words and non-zero pad bits.
-  // For Bech32 5->8 regrouping, this is the "4 bits or less, all zeroes" tail rule.
-  if (!padding && pos >= from) throw new Error('Excess padding');
-  if (!padding && carry > 0) throw new Error(`Non-zero padding: ${carry}`);
-  if (padding && pos > 0) res.push(carry >>> 0);
+// Indexed copy loops instead of Array.from / Uint8Array.from: those go through the
+// iterator protocol on typed arrays, which is ~10x slower and would swamp the fast
+// links' gains on the conversion boundaries.
+function u8ToNumArr(u8: TArg<Uint8Array>, len: number = u8.length): number[] {
+  const res = new Array<number>(len);
+  for (let i = 0; i < len; i++) res[i] = u8[i]!;
   return res;
 }
-
-/**
- * @__NO_SIDE_EFFECTS__
- */
-function radix(num: number): TRet<Coder<Uint8Array, number[]>> {
-  anumber(num);
-  const _256 = 2 ** 8;
-  // Base-range and carry-overflow checks live in convertRadix so encode/decode reject unsupported bases symmetrically.
-  return {
-    encode: (bytes: TArg<Uint8Array>) => {
-      if (!isBytes(bytes)) throw new TypeError('radix.encode input should be Uint8Array');
-      return convertRadix(Array.from(bytes), _256, num);
-    },
-    decode: (digits: number[]) => {
-      anumArr('radix.decode', digits);
-      return Uint8Array.from(convertRadix(digits, num, _256));
-    },
-  };
-}
-
-/**
- * If both bases are power of same number (like `2**8 <-> 2**64`),
- * there is a linear algorithm. For now we have implementation for power-of-two bases only.
- * Generic version, exported as `utils.radix2`: supports bits up to 32 and number[] digits.
- * The built-in codecs use the fast `radix2` below.
- * @__NO_SIDE_EFFECTS__
- */
-function radix2Slow(bits: number, revPadding = false): TRet<Coder<Uint8Array, number[]>> {
-  anumber(bits);
-  if (bits <= 0 || bits > 32) throw new RangeError('radix2: bits should be in (0..32]');
-  if (radix2carry(8, bits) > 32 || radix2carry(bits, 8) > 32)
-    throw new RangeError('radix2: carry overflow');
-  // revPadding flips which direction allows a partial zero tail.
-  // Default pads 8->bits and rejects extra bits on bits->8; `true` does the opposite.
-  const padding = !revPadding;
-  const mask = powers[bits]! - 1;
-  return {
-    encode: (bytes: TArg<Uint8Array>): number[] => {
-      if (!isBytes(bytes)) throw new TypeError('radix2.encode input should be Uint8Array');
-      const len = bytes.length;
-      const res = new Array<number>(
-        padding ? Math.ceil((len * 8) / bits) : Math.floor((len * 8) / bits)
-      );
-      let carry = 0;
-      let pos = 0;
-      let j = 0;
-      for (let i = 0; i < len; i++) {
-        carry = (carry << 8) | bytes[i]!;
-        pos += 8;
-        for (; pos >= bits; pos -= bits) res[j++] = ((carry >> (pos - bits)) & mask) >>> 0;
-      }
-      // Bitwise shifts mask a count of 32 to zero, so clear a fully drained word explicitly.
-      carry = pos > 0 ? (carry << (bits - pos)) & mask : 0;
-      if (!padding && pos >= 8) throw new Error('Excess padding');
-      if (!padding && carry > 0) throw new Error(`Non-zero padding: ${carry}`);
-      if (padding && pos > 0) res[j] = carry >>> 0;
-      return res;
-    },
-    decode: (digits: number[]) => {
-      anumArr('radix2.decode', digits);
-      return Uint8Array.from(convertRadix2(digits, bits, 8, revPadding));
-    },
-  };
-}
-
 // Fast-path links
 // ---------------
-// Performance twins of radix2Slow, alphabetSlow + join and paddingSlow, used by the
-// built-in RFC 4648 codecs below. Links exchange Uint8Array buffers of digit values /
+// Used by every built-in codec. Links exchange Uint8Array buffers of digit values /
 // char codes instead of number[] / string[] of single-char strings, avoiding per-symbol
 // heap allocations. Only usable for single-char ASCII alphabets of <= 128 symbols
-// (Int8Array reverse-table limit) with bits in (0..8]; the Slow versions stay exported
-// through `utils` (under their public names, without the suffix), since they also
-// support multi-char alphabets (like BIP-39 wordlists) and larger digits.
+// (Int8Array reverse-table limit) with bits in (0..8]. The generic "Slow" originals
+// (multi-char alphabets, digits above 255, bits up to 32) were removed from the library;
+// they live on in test/slow.ts as the differential-testing reference.
 // Validation must stay in sync with the Slow versions: same canonical-padding
 // strictness on decode, same rejection of unknown letters.
 
-// TextDecoder('latin1') builds a string from ASCII char codes >10x faster than
-// String.fromCharCode. Probe once: some runtimes lack TextDecoder entirely (Hermes),
-// others lack non-UTF-8 encodings (Node.js built without ICU). All codes here are < 128,
-// where latin1 / windows-1252 and ASCII agree.
-const latin1Decoder: { decode: (codes: Uint8Array) => string } | undefined =
-  /* @__PURE__ */ (() => {
-    try {
-      const decoder = new TextDecoder('latin1');
-      // Self-check on the domain we use (codes < 128): reject broken polyfills at
-      // probe time instead of producing corrupted codec output later.
-      return decoder.decode(Uint8Array.of(0x41, 0x30, 0x2b, 0x7f)) === 'A0+\x7f'
-        ? decoder
-        : undefined;
-    } catch (e) {
-      return undefined;
-    }
-  })();
+declare const TextEncoder: any;
+declare const TextDecoder: any;
+
+// UTF-8 TextDecoder builds a string from ASCII codes 2x faster than `TextDecoder('latin1')`
+// (4x on freshly allocated, our exact case).
+// All codes here are < 128 (range is validated elsewhere): UTF-8 agrees with ASCII byte-for-byte.
+// UTF-8 needs no ICU, so the probe only guards runtimes without TextDecoder at all (Hermes).
+const asciiDecoder: { decode: (codes: Uint8Array) => string } | undefined = /* @__PURE__ */ (() => {
+  try {
+    const decoder = new TextDecoder();
+    // Self-check on the domain we use (codes < 128): reject broken polyfills at
+    // probe time instead of producing corrupted codec output later.
+    return decoder.decode(Uint8Array.of(0x41, 0x30, 0x2b, 0x7f)) === 'A0+\x7f'
+      ? decoder
+      : undefined;
+  } catch (e) {
+    return undefined;
+  }
+})();
 
 const B2S_CHUNK = 8192; // char codes per String.fromCharCode call, avoids arg-count limits
 function charcodesToString(codes: TArg<Uint8Array>): string {
-  if (latin1Decoder !== undefined) return latin1Decoder.decode(codes);
+  const len = codes.length;
+  // Measured crossover: the TextDecoder's per-call setup dominates below ~12 chars,
+  // where String.fromCharCode wins (bech32 checksums, base58xmr blocks).
+  if (asciiDecoder !== undefined && len >= 12) return asciiDecoder.decode(codes);
+  if (len <= B2S_CHUNK) return String.fromCharCode.apply(null, codes as unknown as number[]);
   let res = '';
-  for (let i = 0; i < codes.length; i += B2S_CHUNK)
+  for (let i = 0; i < len; i += B2S_CHUNK)
     res += String.fromCharCode.apply(null, codes.subarray(i, i + B2S_CHUNK) as unknown as number[]);
   return res;
 }
 
 /**
- * Same conversions as radix2Slow(bits), but Uint8Array digits and preallocated output.
- * @__NO_SIDE_EFFECTS__
+ * Linear 8 <-> bits regrouping (radix2Slow semantics), with Uint8Array digits and
+ * preallocated output.
  */
 function radix2(bits: number): TRet<Coder<Uint8Array, Uint8Array>> {
   anumber(bits);
@@ -533,7 +289,7 @@ function radix2(bits: number): TRet<Coder<Uint8Array, Uint8Array>> {
   const mask = powers[bits]! - 1;
   return {
     encode: (bytes: TArg<Uint8Array>) => {
-      if (!isBytes(bytes)) throw new TypeError('radix2.encode input should be Uint8Array');
+      abytes(bytes);
       const len = bytes.length;
       // 8->bits with zero-bit padding of the last digit, like convertRadix2(padding=true)
       const res = new Uint8Array(Math.ceil((len * 8) / bits));
@@ -590,21 +346,35 @@ function radix2(bits: number): TRet<Coder<Uint8Array, Uint8Array>> {
 }
 
 /**
- * Same conversions as chain(alphabetSlow(letters), join('')), via char-code lookup tables.
- * @__NO_SIDE_EFFECTS__
+ * Digit <-> letter mapping fused with string join (chain(alphabetSlow(letters), join(''))
+ * semantics), via char-code lookup tables.
  */
-function alphabet(letters: string): TRet<Coder<Uint8Array, string>> {
+function alphabet(
+  letters: string,
+  aliases?: Record<string, string>
+): TRet<Coder<Uint8Array, string>> {
   const len = letters.length;
   // Larger indexes would wrap in the Int8Array reverse table and decode to wrong digits.
-  if (len > 128) throw new Error('alphabet: max 128 letters allowed');
+  if (len > 128) throw new Error('alphabet: max 128 letters');
   const encTable = new Uint8Array(len);
   const decTable = new Int8Array(128).fill(-1);
   for (let i = 0; i < len; i++) {
     const code = letters.charCodeAt(i);
     if (letters.codePointAt(i) !== code || code > 127)
-      throw new Error('alphabet: only single-char ASCII letters allowed');
+      throw new Error('alphabet: single-char ASCII letters only');
     encTable[i] = code;
     decTable[code] = i;
+  }
+  // Aliases decode like their canonical letter (e.g. hex case-folding), without a
+  // separate normalization pass over the input string.
+  if (aliases !== undefined) {
+    for (const alias of Object.keys(aliases)) {
+      const code = alias.charCodeAt(0);
+      const target = decTable[aliases[alias]!.charCodeAt(0)];
+      if (alias.length !== 1 || code > 127 || target === undefined || target === -1)
+        throw new Error(`alphabet: invalid alias ${alias}`);
+      decTable[code] = target;
+    }
   }
   return {
     encode: (digits: TArg<Uint8Array>): string => {
@@ -615,10 +385,7 @@ function alphabet(letters: string): TRet<Coder<Uint8Array, string>> {
         // Reuse the table lookup's bounds result for the required per-digit range check.
         // Chained radix2 always emits digits < 2**bits === len; check anyway so a
         // mismatched chain throws (like alphabetSlow) instead of silently emitting letter 0.
-        if (code === undefined)
-          throw new Error(
-            `alphabet.encode: digit index outside alphabet "${d}". Allowed: ${letters}`
-          );
+        if (code === undefined) throw new Error(`alphabet.encode: invalid digit ${d}`);
         codes[i] = code;
       }
       return charcodesToString(codes);
@@ -633,7 +400,7 @@ function alphabet(letters: string): TRet<Coder<Uint8Array, string>> {
       for (let i = 0; i < slen; i++) {
         const code = input.charCodeAt(i);
         const digit = code < 128 ? decTable[code]! : -1;
-        if (digit === -1) throw new Error(`Unknown letter: "${input[i]}". Allowed: ${letters}`);
+        if (digit === -1) throw new Error(`Unknown letter "${input[i]}". Allowed: ${letters}`);
         digits[i] = digit;
       }
       return digits as TRet<Uint8Array>;
@@ -642,8 +409,7 @@ function alphabet(letters: string): TRet<Coder<Uint8Array, string>> {
 }
 
 /**
- * Same conversions as paddingSlow(bits), on the joined string.
- * @__NO_SIDE_EFFECTS__
+ * Pad / unpad (paddingSlow semantics), on the joined string.
  */
 function padding(bits: number, chr = '='): Coder<string, string> {
   anumber(bits);
@@ -657,11 +423,10 @@ function padding(bits: number, chr = '='): Coder<string, string> {
       // Uniform label, see alphabet.decode above.
       astr('decode', input);
       let end = input.length;
-      if ((end * bits) % 8)
-        throw new Error('padding: invalid, string should have whole number of bytes');
+      if ((end * bits) % 8) throw new Error('padding: invalid length');
       for (; end > 0 && input[end - 1] === chr; end--) {
         const byte = (end - 1) * bits;
-        if (byte % 8 === 0) throw new Error('padding: invalid, string has too much padding');
+        if (byte % 8 === 0) throw new Error('padding: excess padding');
       }
       return input.slice(0, end);
     },
@@ -692,7 +457,7 @@ function checksum(len: number, fn: TArg<BytesFn>): TRet<Coder<Uint8Array, Uint8A
   // Current call sites rely on `len > 0` and checksum functions that return at least that many bytes.
   return {
     encode(data: TArg<Uint8Array>) {
-      if (!isBytes(data)) throw new TypeError('checksum.encode: input should be Uint8Array');
+      abytes(data);
       const sum = _fn(data).slice(0, len);
       const res = new Uint8Array(data.length + len);
       res.set(data);
@@ -700,7 +465,7 @@ function checksum(len: number, fn: TArg<BytesFn>): TRet<Coder<Uint8Array, Uint8A
       return res;
     },
     decode(data: TArg<Uint8Array>) {
-      if (!isBytes(data)) throw new TypeError('checksum.decode: input should be Uint8Array');
+      abytes(data);
       const payload = data.slice(0, -len);
       const oldChecksum = data.slice(-len);
       const newChecksum = _fn(payload).slice(0, len);
@@ -710,22 +475,6 @@ function checksum(len: number, fn: TArg<BytesFn>): TRet<Coder<Uint8Array, Uint8A
     },
   };
 }
-
-// prettier-ignore
-/**
- * Low-level building blocks used by the exported codecs.
- * @example
- * Build a radix-32 coder from the low-level helpers.
- * ```ts
- * import { utils } from '@scure/base';
- * utils.radix2(5).encode(Uint8Array.from([1, 2, 3]));
- * ```
- */
-export const utils: { alphabet: typeof alphabetSlow; chain: typeof chain; checksum: typeof checksum; convertRadix: typeof convertRadix; convertRadix2: typeof convertRadix2; radix: typeof radix; radix2: typeof radix2Slow; join: typeof join; padding: typeof paddingSlow; } = /* @__PURE__ */ Object.freeze({
-  // Public names keep the generic (slow) implementations: they support multi-char
-  // alphabets, digits above 255 and bits up to 32, unlike the internal fast versions.
-  alphabet: alphabetSlow, chain, checksum, convertRadix, convertRadix2, radix, radix2: radix2Slow, join, padding: paddingSlow,
-});
 
 // RFC 4648 aka RFC 3548
 // ---------------------
@@ -741,7 +490,7 @@ export const utils: { alphabet: typeof alphabetSlow; chain: typeof chain; checks
  * // => '12AB'
  * ```
  */
-export const base16: BytesCoder = /* @__PURE__ */ Object.freeze(
+export const base16: BytesCoder = /* @__PURE__ */ freeze(() =>
   chain(radix2(4), alphabet('0123456789ABCDEF'))
 );
 
@@ -759,7 +508,7 @@ export const base16: BytesCoder = /* @__PURE__ */ Object.freeze(
  * // => Uint8Array.from([0x12, 0xab])
  * ```
  */
-export const base32: BytesCoder = /* @__PURE__ */ Object.freeze(
+export const base32: BytesCoder = /* @__PURE__ */ freeze(() =>
   chain(radix2(5), alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'), padding(5))
 );
 
@@ -776,7 +525,7 @@ export const base32: BytesCoder = /* @__PURE__ */ Object.freeze(
  * // => Uint8Array.from([0x12, 0xab])
  * ```
  */
-export const base32nopad: BytesCoder = /* @__PURE__ */ Object.freeze(
+export const base32nopad: BytesCoder = /* @__PURE__ */ freeze(() =>
   chain(radix2(5), alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'))
 );
 /**
@@ -791,7 +540,7 @@ export const base32nopad: BytesCoder = /* @__PURE__ */ Object.freeze(
  * // => Uint8Array.from([0x12, 0xab])
  * ```
  */
-export const base32hex: BytesCoder = /* @__PURE__ */ Object.freeze(
+export const base32hex: BytesCoder = /* @__PURE__ */ freeze(() =>
   chain(radix2(5), alphabet('0123456789ABCDEFGHIJKLMNOPQRSTUV'), padding(5))
 );
 
@@ -807,7 +556,7 @@ export const base32hex: BytesCoder = /* @__PURE__ */ Object.freeze(
  * // => Uint8Array.from([0x12, 0xab])
  * ```
  */
-export const base32hexnopad: BytesCoder = /* @__PURE__ */ Object.freeze(
+export const base32hexnopad: BytesCoder = /* @__PURE__ */ freeze(() =>
   chain(radix2(5), alphabet('0123456789ABCDEFGHIJKLMNOPQRSTUV'))
 );
 /**
@@ -821,7 +570,7 @@ export const base32hexnopad: BytesCoder = /* @__PURE__ */ Object.freeze(
  * // => Uint8Array.from([0x12, 0xab])
  * ```
  */
-export const base32crockford: BytesCoder = /* @__PURE__ */ Object.freeze(
+export const base32crockford: BytesCoder = /* @__PURE__ */ freeze(() =>
   chain(
     radix2(5),
     alphabet('0123456789ABCDEFGHJKMNPQRSTVWXYZ'),
@@ -854,11 +603,19 @@ const decodeBase64Builtin = (s: string, isUrl: boolean) => {
   return (Uint8Array as any).fromBase64(s, { alphabet, lastChunkHandling: 'strict' });
 };
 
+/** base64 from RFC 4648. Padded. Pure JS version */
+const base64Fallback: BytesCoder = /* @__PURE__ */ freeze(() =>
+  chain(
+    radix2(6),
+    alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'),
+    padding(6)
+  )
+);
+
 /**
  * base64 from RFC 4648. Padded.
- * Use `base64nopad` for unpadded version.
- * Also check out `base64url`, `base64urlnopad`.
- * Falls back to built-in function, when available.
+ * Alternative variants: `base64nopad`, `base64url`, `base64urlnopad`.
+ * Utilizes native `Uint8Array.fromBase64` builtin, otherwise falls back to `base64fallback` when it's unavailable.
  * @example
  * ```js
  * base64.encode(Uint8Array.from([0x12, 0xab]));
@@ -868,14 +625,10 @@ const decodeBase64Builtin = (s: string, isUrl: boolean) => {
  * ```
  */
 // prettier-ignore
-export const base64: BytesCoder = /* @__PURE__ */ Object.freeze(hasBase64Builtin ? {
+export const base64: BytesCoder = /* @__PURE__ */ freeze(() => hasBase64Builtin ? {
   encode(b) { abytes(b); return (b as any).toBase64(); },
   decode(s) { return decodeBase64Builtin(s, false); },
-} : chain(
-  radix2(6),
-  alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'),
-  padding(6)
-));
+} : base64Fallback);
 /**
  * base64 from RFC 4648. No padding.
  * Use `base64` for padded version.
@@ -887,7 +640,7 @@ export const base64: BytesCoder = /* @__PURE__ */ Object.freeze(hasBase64Builtin
  * // => Uint8Array.from([0x12, 0xab])
  * ```
  */
-export const base64nopad: BytesCoder = /* @__PURE__ */ Object.freeze(
+export const base64nopad: BytesCoder = /* @__PURE__ */ freeze(() =>
   chain(radix2(6), alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'))
 );
 
@@ -904,7 +657,7 @@ export const base64nopad: BytesCoder = /* @__PURE__ */ Object.freeze(
  * ```
  */
 // prettier-ignore
-export const base64url: BytesCoder = /* @__PURE__ */ Object.freeze(hasBase64Builtin ? {
+export const base64url: BytesCoder = /* @__PURE__ */ freeze(() => hasBase64Builtin ? {
   encode(b) { abytes(b); return (b as any).toBase64({ alphabet: 'base64url' }); },
   decode(s) { return decodeBase64Builtin(s, true); },
 } : chain(
@@ -924,14 +677,122 @@ export const base64url: BytesCoder = /* @__PURE__ */ Object.freeze(hasBase64Buil
  * // => Uint8Array.from([0x12, 0xab])
  * ```
  */
-export const base64urlnopad: BytesCoder = /* @__PURE__ */ Object.freeze(
+export const base64urlnopad: BytesCoder = /* @__PURE__ */ freeze(() =>
   chain(radix2(6), alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'))
 );
 
 // base58 code
 // -----------
-const genBase58 = /* @__NO_SIDE_EFFECTS__ */ (abc: string) =>
-  chain(radix(58), alphabetSlow(abc), join(''));
+// Base conversion 256 <-> 58 done on 16-bit limbs, five base58 digits (one divmod by
+// 58**5) per pass, ~10x fewer inner-loop iterations than digit-at-a-time conversion.
+// Exactness: every intermediate is a non-negative integer below 2**53, so float64
+// arithmetic (including Math.floor of the quotients) is exact:
+// - encode: carry * 2**16 + limb < 58**5 * 2**16 < 2**46
+// - decode: limb * 58**5 + carry < 2**16 * 58**5 + 2**30 < 2**46
+// Still O(n^2) overall like any positional-base conversion — see the base58 DoS note.
+const B58_GROUP = 656356768; // 58**5 < 2**30; literal (not `58 ** 5`) so bundlers can drop it as dead code
+
+const radix58: TRet<Coder<Uint8Array, Uint8Array>> = {
+  encode: (bytes: TArg<Uint8Array>) => {
+    abytes(bytes);
+    const blen = bytes.length;
+    if (blen === 0) return new Uint8Array(0) as TRet<Uint8Array>;
+    // Leading zero bytes map 1:1 to leading zero digits (at most blen-1 explicit zeros;
+    // an all-zero value still contributes one digit below).
+    let zeros = 0;
+    while (zeros < blen - 1 && bytes[zeros] === 0) zeros++;
+    // Pack big-endian 16-bit limbs; odd length makes the top limb a single byte.
+    const nlimbs = Math.ceil(blen / 2);
+    const limbs = new Uint16Array(nlimbs);
+    const odd = blen & 1;
+    if (odd) limbs[0] = bytes[0]!;
+    for (let i = odd, j = odd; i < blen; i += 2, j++) limbs[j] = (bytes[i]! << 8) | bytes[i + 1]!;
+    // Repeated divmod by 58**5; each pass emits one 5-digit group, least significant
+    // first. No carry-overflow guard like convertRadix had: that one faced arbitrary
+    // caller-chosen bases, while these bounds are static and proven exact above.
+    const groups: number[] = [];
+    let pos = 0; // limbs before pos are known zero
+    while (pos < nlimbs) {
+      let carry = 0;
+      for (let i = pos; i < nlimbs; i++) {
+        const cur = carry * 0x10000 + limbs[i]!;
+        const q = Math.floor(cur / B58_GROUP);
+        carry = cur - q * B58_GROUP;
+        limbs[i] = q;
+        if (q === 0 && i === pos) pos++;
+      }
+      groups.push(carry);
+    }
+    // The top group is nonzero unless the whole value is zero, so total significant
+    // digit count is 5 per full group plus the top group's own width. (Writing 5 digits
+    // per group and trimming via subarray is smaller code, but the offset view slows
+    // encode ~25% and base58xmr 2x — measured.)
+    const top = groups.length - 1;
+    let sig = top * 5;
+    for (let v = groups[top]!; ; v = Math.floor(v / 58)) {
+      sig++;
+      if (v < 58) break;
+    }
+    const res = new Uint8Array(zeros + sig); // leading zero digits are already 0
+    let j = res.length - 1;
+    for (let g = 0; g < top; g++) {
+      let v = groups[g]!;
+      for (let k = 0; k < 5; k++) {
+        res[j--] = v % 58;
+        v = Math.floor(v / 58);
+      }
+    }
+    for (let v = groups[top]!; j >= zeros; v = Math.floor(v / 58)) res[j--] = v % 58;
+    return res as TRet<Uint8Array>;
+  },
+  decode: (digits: TArg<Uint8Array>) => {
+    abytes(digits);
+    const dlen = digits.length;
+    if (dlen === 0) return new Uint8Array(0) as TRet<Uint8Array>;
+    let zeros = 0;
+    while (zeros < dlen - 1 && digits[zeros] === 0) zeros++;
+    // Multiply-accumulate 16-bit limbs (little-endian, `used` live) group by group,
+    // most significant group first; the first group may be shorter than 5 digits, and
+    // its 58**group factor falls out of the digit fold.
+    const limbs = new Uint16Array(Math.ceil((dlen * 6) / 16) + 1);
+    let used = 0;
+    let i = 0;
+    let group = dlen % 5 || 5;
+    while (i < dlen) {
+      let gval = 0;
+      let factor = 1;
+      for (const end = i + group; i < end; i++) {
+        const d = digits[i]!;
+        // Unreachable through the public chain (alphabet emits digits < 58); guards
+        // internal misuse from silently corrupting output.
+        if (d >= 58) throw new Error(`invalid integer: ${d}`);
+        gval = gval * 58 + d;
+        factor *= 58;
+      }
+      group = 5;
+      let carry = gval;
+      for (let k = 0; k < used; k++) {
+        const cur = limbs[k]! * factor + carry;
+        carry = Math.floor(cur / 0x10000);
+        limbs[k] = cur - carry * 0x10000;
+      }
+      for (; carry > 0; carry = Math.floor(carry / 0x10000)) limbs[used++] = carry % 0x10000;
+    }
+    // used === 0 means the value is zero: it still contributes one byte, like a lone
+    // zero digit does.
+    const valueBytes = used === 0 ? 1 : used * 2 - (limbs[used - 1]! < 256 ? 1 : 0);
+    const res = new Uint8Array(zeros + valueBytes); // leading zero bytes are already 0
+    let j = res.length - 1;
+    for (let k = 0; k < used; k++) {
+      const limb = limbs[k]!;
+      res[j--] = limb & 0xff;
+      if (j >= zeros) res[j--] = limb >> 8;
+    }
+    return res as TRet<Uint8Array>;
+  },
+};
+
+const genBase58 = (abc: string) => chain(radix58, alphabet(abc));
 
 /**
  * base58: base64 without ambigous characters +, /, 0, O, I, l.
@@ -943,7 +804,7 @@ const genBase58 = /* @__NO_SIDE_EFFECTS__ */ (abc: string) =>
  * // => Uint8Array.from([0, 1, 2])
  * ```
  */
-export const base58: BytesCoder = /* @__PURE__ */ Object.freeze(
+export const base58: BytesCoder = /* @__PURE__ */ freeze(() =>
   genBase58('123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz')
 );
 /**
@@ -955,7 +816,7 @@ export const base58: BytesCoder = /* @__PURE__ */ Object.freeze(
  * base58flickr.decode(text);
  * ```
  */
-export const base58flickr: BytesCoder = /* @__PURE__ */ Object.freeze(
+export const base58flickr: BytesCoder = /* @__PURE__ */ freeze(() =>
   genBase58('123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ')
 );
 /**
@@ -967,7 +828,7 @@ export const base58flickr: BytesCoder = /* @__PURE__ */ Object.freeze(
  * base58xrp.decode(text);
  * ```
  */
-export const base58xrp: BytesCoder = /* @__PURE__ */ Object.freeze(
+export const base58xrp: BytesCoder = /* @__PURE__ */ freeze(() =>
   genBase58('rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz')
 );
 
@@ -986,7 +847,7 @@ const XMR_BLOCK_LEN = [0, 2, 3, 5, 6, 7, 9, 10, 11];
  * base58xmr.decode(text);
  * ```
  */
-export const base58xmr: BytesCoder = /* @__PURE__ */ Object.freeze({
+export const base58xmr: BytesCoder = /* @__PURE__ */ freeze(() => ({
   encode(data: TArg<Uint8Array>) {
     abytes(data);
     let res = '';
@@ -998,21 +859,28 @@ export const base58xmr: BytesCoder = /* @__PURE__ */ Object.freeze({
   },
   decode(str: string) {
     astr('base58xmr.decode', str);
-    let res: number[] = [];
-    for (let i = 0; i < str.length; i += 11) {
+    const strLen = str.length;
+    // Only the last block may be short, and only to one of the XMR_BLOCK_LEN widths —
+    // so the output length is known up front and blocks write into place. Growing a
+    // number[] via concat per block was quadratic; this keeps decode linear like the
+    // block encoding always intended.
+    const tailChars = strLen % 11;
+    const tailBytes = tailChars === 0 ? 0 : XMR_BLOCK_LEN.indexOf(tailChars);
+    if (tailBytes === -1) throw new Error(`base58xmr: invalid block length ${tailChars}`);
+    const res = new Uint8Array(Math.floor(strLen / 11) * 8 + tailBytes);
+    let w = 0;
+    for (let i = 0; i < strLen; i += 11) {
       const slice = str.slice(i, i + 11);
-      const blockLen = XMR_BLOCK_LEN.indexOf(slice.length);
-      // Only the last block may be short, and only to one of the XMR_BLOCK_LEN widths.
-      if (blockLen === -1) throw new Error(`base58xmr: invalid block length ${slice.length}`);
+      const blockLen = slice.length === 11 ? 8 : tailBytes;
       const block = base58.decode(slice);
       for (let j = 0; j < block.length - blockLen; j++) {
         if (block[j] !== 0) throw new Error('base58xmr: wrong padding');
       }
-      res = res.concat(Array.from(block.slice(block.length - blockLen)));
+      for (let j = block.length - blockLen; j < block.length; j++) res[w++] = block[j]!;
     }
-    return Uint8Array.from(res);
+    return res;
   },
-});
+}));
 
 /**
  * Method, which creates base58check encoder.
@@ -1078,12 +946,26 @@ export interface Bech32DecodedWithArray<Prefix extends string = string> {
   bytes: Uint8Array;
 }
 
-// BIP 173 character table: data values 0..31 map to `qpzry9x8gf2tvdw0s3jn54khce6mua7l`.
-// Slow version: bech32 words are number[] in the public API, not Uint8Array.
-const BECH_ALPHABET: Coder<number[], string> = /* @__PURE__ */ chain(
-  alphabetSlow('qpzry9x8gf2tvdw0s3jn54khce6mua7l'),
-  join('')
+// BIP 173 character table.
+// Callers adapt the public number[] words API to Uint8Array at the edges (wordsToU8 below):
+// feeding number[] into alphabet.encode would work at runtime, but it turns the shared
+// hot loop polymorphic and measurably slows the RFC 4648 codecs using the same literal.
+const BECH_ALPHABET: Coder<Uint8Array, string> = /* @__PURE__ */ alphabet(
+  'qpzry9x8gf2tvdw0s3jn54khce6mua7l'
 );
+
+// Range-checks while packing: a plain copy would silently wrap out-of-range words
+// (256 -> 0 would encode to a valid letter). Same message the old slow alphabet threw.
+function wordsToU8(words: number[]): Uint8Array {
+  const len = words.length;
+  const res = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    const w = words[i]!;
+    if (w < 0 || w >= 32) throw new Error(`alphabet.encode: invalid digit ${w}`);
+    res[i] = w;
+  }
+  return res;
+}
 
 // BIP 173 `bech32_polymod` GEN coefficients.
 const POLYMOD_GENERATORS = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
@@ -1111,7 +993,9 @@ function bechChecksum(prefix: string, words: number[], encodingConst = 1): strin
   for (let i = 0; i < 6; i++) chk = bech32Polymod(chk);
   // BIP 173/BIP 350: xor the final checksum constant, then emit the 30-bit state as six 5-bit symbols.
   chk ^= encodingConst;
-  return BECH_ALPHABET.encode(convertRadix2([chk % powers[30]!], 30, 5, false));
+  const sum = new Uint8Array(6);
+  for (let i = 0; i < 6; i++) sum[i] = (chk >>> (5 * (5 - i))) & 31;
+  return BECH_ALPHABET.encode(sum);
 }
 
 /** bech32 codec surface. */
@@ -1178,16 +1062,45 @@ export interface Bech32 {
    */
   toWords(from: Uint8Array): number[];
 }
-/**
- * @__NO_SIDE_EFFECTS__
- */
 function genBech32(encoding: 'bech32' | 'bech32m'): TRet<Bech32> {
   // BIP 173 uses final xor constant 1; BIP 350 swaps in 0x2bc830a3 for Bech32m.
   const ENCODING_CONST = encoding === 'bech32' ? 1 : 0x2bc830a3;
-  // Slow version: public API words are number[], not Uint8Array
-  const _words = radix2Slow(5);
-  const fromWords = _words.decode;
-  const toWords = _words.encode;
+  // Public API words are number[], so adapt the fast radix2's Uint8Array protocol at the edge.
+  const _words = radix2(5);
+  const toWords = (from: TArg<Uint8Array>): number[] => {
+    abytes(from);
+    // Dedicated 8->5 regrouping (radix2(5).encode semantics) writing the public number[]
+    // directly; encode-into-Uint8Array plus a copy loop measurably regressed this hot path.
+    const len = from.length;
+    const res = new Array<number>(Math.ceil((len * 8) / 5));
+    let carry = 0;
+    let pos = 0;
+    let j = 0;
+    for (let i = 0; i < len; i++) {
+      // No carry cleanup needed: stale bits sit above pos and every extraction (including
+      // the tail below) masks with `& 31`, so they never reach the output. Masking carry
+      // here measurably slowed the loop.
+      carry = (carry << 8) | from[i]!;
+      pos += 8;
+      for (; pos >= 5; pos -= 5) res[j++] = (carry >> (pos - 5)) & 31;
+    }
+    if (pos > 0) res[j] = (carry << (5 - pos)) & 31;
+    return res;
+  };
+  const fromWords = (to: number[]): TRet<Uint8Array> => {
+    anumArr('radix2.decode', to);
+    // Range-check while packing into the byte buffer: a plain copy would silently
+    // truncate out-of-range words. Rejecting negatives is a deliberate fix — the old
+    // convertRadix2 path silently corrupted output for them.
+    const len = to.length;
+    const digits = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      const w = to[i]!;
+      if (w < 0 || w >= 32) throw new Error(`convertRadix2: invalid word=${w}`);
+      digits[i] = w;
+    }
+    return _words.decode(digits) as TRet<Uint8Array>;
+  };
   const fromWordsUnsafe = unsafeWrapper(fromWords);
 
   function encode<Prefix extends string>(
@@ -1197,7 +1110,7 @@ function genBech32(encoding: 'bech32' | 'bech32m'): TRet<Bech32> {
   ): `${Lowercase<Prefix>}1${string}` {
     astr('bech32.encode prefix', prefix);
     if (limit !== false) anumber(limit, 'limit');
-    if (isBytes(words)) words = Array.from(words);
+    if (isBytes(words)) words = u8ToNumArr(words);
     anumArr('bech32.encode', words);
     const plen = prefix.length;
     if (plen === 0) throw new TypeError(`Invalid prefix length ${plen}`);
@@ -1207,7 +1120,7 @@ function genBech32(encoding: 'bech32' | 'bech32m'): TRet<Bech32> {
       throw new TypeError(`Length ${actualLength} exceeds limit ${limit}`);
     const lowered = prefix.toLowerCase();
     const sum = bechChecksum(lowered, words, ENCODING_CONST);
-    return `${lowered}1${BECH_ALPHABET.encode(words)}${sum}` as `${Lowercase<Prefix>}1${string}`;
+    return `${lowered}1${BECH_ALPHABET.encode(wordsToU8(words))}${sum}` as `${Lowercase<Prefix>}1${string}`;
   }
 
   function decode<Prefix extends string>(
@@ -1221,20 +1134,20 @@ function genBech32(encoding: 'bech32' | 'bech32m'): TRet<Bech32> {
     const slen = str.length;
     // Minimum length is 1-char hrp + `1` separator + 6-char checksum.
     if (slen < 8 || (limit !== false && slen > limit))
-      throw new TypeError(`invalid string length: ${slen} (${str}). Expected (8..${limit})`);
+      throw new TypeError(`invalid string length ${slen}, expected (8..${limit})`);
     // don't allow mixed case
     const lowered = str.toLowerCase();
     if (str !== lowered && str !== str.toUpperCase())
-      throw new Error(`String must be lowercase or uppercase`);
+      throw new Error(`mixed-case string not allowed`);
     const sepIndex = lowered.lastIndexOf('1');
-    if (sepIndex === 0 || sepIndex === -1)
-      throw new Error(`Letter "1" must be present between prefix and data only`);
+    if (sepIndex === 0 || sepIndex === -1) throw new Error(`invalid separator "1"`);
     const prefix = lowered.slice(0, sepIndex);
     const data = lowered.slice(sepIndex + 1);
-    if (data.length < 6) throw new Error('Data must be at least 6 characters long');
-    const words = BECH_ALPHABET.decode(data).slice(0, -6);
+    if (data.length < 6) throw new Error('invalid data length');
+    const digits = BECH_ALPHABET.decode(data);
+    const words = u8ToNumArr(digits, digits.length - 6);
     const sum = bechChecksum(prefix, words, ENCODING_CONST);
-    if (!data.endsWith(sum)) throw new Error(`Invalid checksum in ${str}: expected "${sum}"`);
+    if (!data.endsWith(sum)) throw new Error(`Invalid checksum in ${str}`);
     return { prefix, words };
   }
 
@@ -1278,7 +1191,7 @@ function genBech32(encoding: 'bech32' | 'bech32m'): TRet<Bech32> {
  * bech32.decode(text);
  * ```
  */
-export const bech32: TRet<Bech32> = /* @__PURE__ */ Object.freeze(genBech32('bech32'));
+export const bech32: TRet<Bech32> = /* @__PURE__ */ freeze(() => genBech32('bech32'));
 
 /**
  * bech32m from BIP 350. Operates on words.
@@ -1292,10 +1205,7 @@ export const bech32: TRet<Bech32> = /* @__PURE__ */ Object.freeze(genBech32('bec
  * bech32m.decode(text);
  * ```
  */
-export const bech32m: TRet<Bech32> = /* @__PURE__ */ Object.freeze(genBech32('bech32m'));
-
-declare const TextEncoder: any;
-declare const TextDecoder: any;
+export const bech32m: TRet<Bech32> = /* @__PURE__ */ freeze(() => genBech32('bech32m'));
 
 /**
  * ASCII-to-byte decoder. Rejects non-ASCII text and bytes instead of doing UTF-8 replacement.
@@ -1306,18 +1216,17 @@ declare const TextDecoder: any;
  * const str = ascii.encode(b); // "ABC"
  * ```
  */
-export const ascii: TRet<BytesCoder> = /* @__PURE__ */ Object.freeze({
+export const ascii: TRet<BytesCoder> = /* @__PURE__ */ freeze(() => ({
   encode(data: TArg<Uint8Array>) {
     abytes(data);
-    let res = '';
     for (let i = 0; i < data.length; i++) {
       const byte = data[i]!;
       // ASCII is 7-bit; reject bytes outside 0x00..0x7f instead of silently widening to
-      // Latin-1/UTF-8.
-      if (byte > 127) throw new RangeError(`bytes contain non-ASCII byte ${byte} at position ${i}`);
-      res += String.fromCharCode(byte);
+      // Latin-1/UTF-8. Validating up front keeps the error position exact while the
+      // string itself is built in bulk (~3x faster at 1KB than per-char concat).
+      if (byte > 127) throw new RangeError(`non-ASCII byte ${byte} at ${i}`);
     }
-    return res;
+    return charcodesToString(data);
   },
   decode(str: string) {
     if (typeof str !== 'string') throw new TypeError('ascii string expected, got ' + typeof str);
@@ -1326,16 +1235,12 @@ export const ascii: TRet<BytesCoder> = /* @__PURE__ */ Object.freeze({
       // Indexed access is much faster than Uint8Array.from(str, mapFn) here and keeps
       // exact error positions.
       const charCode = str.charCodeAt(i);
-      if (charCode > 127) {
-        throw new RangeError(
-          `string contains non-ASCII character "${str[i]}" with code ${charCode} at position ${i}`
-        );
-      }
+      if (charCode > 127) throw new RangeError(`non-ASCII char "${str[i]}" (${charCode}) at ${i}`);
       res[i] = charCode;
     }
     return res;
   },
-});
+}));
 
 const _isWellFormedShim = (str: string): boolean => {
   // encodeURI rejects malformed UTF-16, giving a compact fallback that matches native
@@ -1354,7 +1259,8 @@ const _isWellFormed: (str: string) => boolean = /* @__PURE__ */ (() =>
 // This fallback stays small because strict UTF-8 only needs fatal decoding plus well-formed
 // UTF-16 checks, not the replacement, streaming, or legacy-encoding behavior of full platform
 // text codecs.
-const utf8Fallback: BytesCoder = /* @__PURE__ */ Object.freeze({
+const utf8err = (i: number) => new TypeError(`invalid utf8 at byte ${i}`);
+const utf8Fallback: BytesCoder = /* @__PURE__ */ freeze(() => ({
   encode(data: TArg<Uint8Array>) {
     abytes(data);
     let res = '';
@@ -1364,22 +1270,22 @@ const utf8Fallback: BytesCoder = /* @__PURE__ */ Object.freeze({
         res += String.fromCharCode(a);
         continue;
       }
-      if (a < 0b1100_0010 || i >= data.length) throw new TypeError(`invalid utf8 at byte ${i - 1}`);
+      if (a < 0b1100_0010 || i >= data.length) throw utf8err(i - 1);
       const b = data[i++]!;
-      if ((b & 0b1100_0000) !== 0b1000_0000) throw new TypeError(`invalid utf8 at byte ${i - 1}`);
+      if ((b & 0b1100_0000) !== 0b1000_0000) throw utf8err(i - 1);
       let cp = ((a & 0b0001_1111) << 6) | (b & 0b0011_1111);
       if (a >= 0b1110_0000) {
-        if (i >= data.length) throw new TypeError(`invalid utf8 at byte ${i - 1}`);
+        if (i >= data.length) throw utf8err(i - 1);
         const c = data[i++]!;
         if (
           (c & 0b1100_0000) !== 0b1000_0000 ||
           (a === 0b1110_0000 && b < 0b1010_0000) ||
           (a === 0xed && b >= 0b1010_0000)
         )
-          throw new TypeError(`invalid utf8 at byte ${i - 1}`);
+          throw utf8err(i - 1);
         cp = ((a & 0b0000_1111) << 12) | ((b & 0b0011_1111) << 6) | (c & 0b0011_1111);
         if (a >= 0b1111_0000) {
-          if (i >= data.length) throw new TypeError(`invalid utf8 at byte ${i - 1}`);
+          if (i >= data.length) throw utf8err(i - 1);
           const d = data[i++]!;
           if (
             a > 0b1111_0100 ||
@@ -1387,7 +1293,7 @@ const utf8Fallback: BytesCoder = /* @__PURE__ */ Object.freeze({
             (a === 0b1111_0000 && b < 0b1001_0000) ||
             (a === 0b1111_0100 && b >= 0b1001_0000)
           )
-            throw new TypeError(`invalid utf8 at byte ${i - 1}`);
+            throw utf8err(i - 1);
           cp =
             ((a & 7) << 18) |
             ((b & 0b0011_1111) << 12) |
@@ -1430,7 +1336,7 @@ const utf8Fallback: BytesCoder = /* @__PURE__ */ Object.freeze({
     }
     return res.subarray(0, pos);
   },
-});
+}));
 
 /**
  * Strict UTF-8-to-byte decoder. Uses built-in TextDecoder / TextEncoder when available.
@@ -1446,7 +1352,7 @@ const utf8Fallback: BytesCoder = /* @__PURE__ */ Object.freeze({
  * const str = utf8.encode(b); // "hey"
  * ```
  */
-export const utf8: BytesCoder = /* @__PURE__ */ (() => {
+export const utf8: BytesCoder = /* @__PURE__ */ freeze(() => {
   let _utf8Encoder: any;
   let _utf8Decoder: any;
   const utf8Builtin: BytesCoder = {
@@ -1464,25 +1370,31 @@ export const utf8: BytesCoder = /* @__PURE__ */ (() => {
       return (_utf8Encoder || (_utf8Encoder = new TextEncoder())).encode(str);
     },
   };
-  return Object.freeze({
+  return {
     // Select each direction once at module init, since
     // TextEncoder and TextDecoder can exist independently.
     encode: typeof TextDecoder === 'function' ? utf8Builtin.encode : utf8Fallback.encode,
     decode: typeof TextEncoder === 'function' ? utf8Builtin.decode : utf8Fallback.decode,
-  });
-})();
+  };
+});
 // Keep internal parity probes behind a test-only export.
 export const __TESTS: {
-  alphabetFast: typeof alphabet;
-  radix2Fast: typeof radix2;
+  alphabet: typeof alphabet;
+  base64Fallback: BytesCoder;
+  radix2: typeof radix2;
+  radix58: typeof radix58;
+  checksum: typeof checksum;
   utf8Fallback: BytesCoder;
   _isWellFormedShim: (str: string) => boolean;
-} = /* @__PURE__ */ Object.freeze({
-  alphabetFast: alphabet,
-  radix2Fast: radix2,
+} = /* @__PURE__ */ freeze(() => ({
+  alphabet: alphabet,
+  base64Fallback: base64Fallback,
+  radix2: radix2,
+  radix58: radix58,
+  checksum: checksum,
   utf8Fallback: utf8Fallback,
   _isWellFormedShim: _isWellFormedShim,
-});
+}));
 
 // Built-in hex conversion https://caniuse.com/mdn-javascript_builtins_uint8array_fromhex
 // prettier-ignore
@@ -1507,109 +1419,20 @@ const hexBuiltin: BytesCoder = {
  * const str = hex.encode(b); // "0102ff"
  * ```
  */
-export const hex: BytesCoder = /* @__PURE__ */ Object.freeze(
+export const hex: BytesCoder = /* @__PURE__ */ freeze(() =>
   hasHexBuiltin
     ? hexBuiltin
     : chain(
         radix2(4),
-        alphabet('0123456789abcdef'),
+        // Case-insensitive decode via table aliases instead of a toLowerCase pass.
+        alphabet('0123456789abcdef', { A: 'a', B: 'b', C: 'c', D: 'd', E: 'e', F: 'f' }),
         normalize((s: string) => {
           // astr first: same non-string message as the native path, and no `s.length`
           // access on null / undefined while building the error.
           astr('hex', s);
           if (s.length % 2 !== 0)
-            throw new TypeError(`hex.decode: expected even-length string, got length ${s.length}`);
-          return s.toLowerCase();
+            throw new TypeError(`hex.decode: odd-length string (${s.length})`);
+          return s;
         })
       )
 );
-
-/** Built-in codecs exposed through the deprecated string conversion helpers. */
-export type SomeCoders = {
-  /** UTF-8 string codec. */
-  utf8: BytesCoder;
-  /** Hex codec. */
-  hex: BytesCoder;
-  /** Uppercase RFC 4648 base16 codec. */
-  base16: BytesCoder;
-  /** RFC 4648 base32 codec with padding. */
-  base32: BytesCoder;
-  /** RFC 4648 base64 codec with padding. */
-  base64: BytesCoder;
-  /** URL-safe base64 codec without `+` or `/`. */
-  base64url: BytesCoder;
-  /** Bitcoin-style base58 codec. */
-  base58: BytesCoder;
-  /** Monero-style base58 codec. */
-  base58xmr: BytesCoder;
-};
-// prettier-ignore
-// Keep this registry aligned with CoderType/coderTypeError; only byte<->string codecs belong here.
-const CODERS: SomeCoders = {
-  utf8, hex, base16, base32, base64, base64url, base58, base58xmr
-};
-type CoderType = keyof SomeCoders;
-const coderTypeError =
-  'Invalid encoding type. Available types: utf8, hex, base16, base32, base64, base64url, base58, base58xmr';
-
-/**
- * Encodes bytes with one of the built-in codecs.
- * @deprecated Use the codec directly, for example `hex.encode(bytes)`.
- * @param type - Codec name.
- * @param bytes - Bytes to encode.
- * @returns Encoded string.
- * @throws On wrong argument types. {@link TypeError}
- * @example
- * ```ts
- * bytesToString('hex', Uint8Array.from([1, 2, 255]));
- * ```
- */
-export const bytesToString = (type: CoderType, bytes: TArg<Uint8Array>): string => {
-  if (typeof type !== 'string' || !CODERS.hasOwnProperty(type)) throw new TypeError(coderTypeError);
-  if (!isBytes(bytes)) throw new TypeError('bytesToString() expects Uint8Array');
-  return CODERS[type].encode(bytes);
-};
-
-/**
- * Alias for `bytesToString`.
- * @deprecated Use {@link bytesToString} or the codec directly instead.
- * @param type - Codec name.
- * @param bytes - Bytes to encode.
- * @returns Encoded string.
- * @example
- * ```ts
- * str('hex', Uint8Array.from([1, 2, 255]));
- * ```
- */
-export const str: (type: CoderType, bytes: TArg<Uint8Array>) => string = bytesToString; // as in python, but for bytes only
-
-/**
- * Decodes a string with one of the built-in codecs.
- * @deprecated Use the codec directly, for example `hex.decode(text)`.
- * @param type - Codec name.
- * @param str - Encoded string.
- * @returns Decoded bytes.
- * @throws On wrong argument types. {@link TypeError}
- * @example
- * ```ts
- * stringToBytes('hex', '0102ff');
- * ```
- */
-export const stringToBytes = (type: CoderType, str: string): TRet<Uint8Array> => {
-  // Match bytesToString's selector validation so hostile `toString()` coercions can't leak custom errors.
-  if (typeof type !== 'string' || !CODERS.hasOwnProperty(type)) throw new TypeError(coderTypeError);
-  if (typeof str !== 'string') throw new TypeError('stringToBytes() expects string');
-  return CODERS[type].decode(str) as TRet<Uint8Array>;
-};
-/**
- * Alias for `stringToBytes`.
- * @deprecated Use {@link stringToBytes} or the codec directly instead.
- * @param type - Codec name.
- * @param str - Encoded string.
- * @returns Decoded bytes.
- * @example
- * ```ts
- * bytes('hex', '0102ff');
- * ```
- */
-export const bytes: (type: CoderType, str: string) => TRet<Uint8Array> = stringToBytes;

@@ -1,6 +1,7 @@
 import { decodeHex } from 'https://deno.land/std/encoding/hex.ts';
 import { assertEquals, assertThrows } from 'https://deno.land/std@0.146.0/testing/asserts.ts';
-import { base58, base58xmr, utils } from '../index.ts';
+import { base58, base58xmr } from '../index.ts';
+import { paddingSlow } from './slow.ts';
 import BASE58_VECTORS from './vectors/base58.json' with { type: 'json' };
 import BASE58_XMR_VECTORS from './vectors/base58_xmr.json' with { type: 'json' };
 
@@ -24,8 +25,8 @@ Deno.test('deno: base58: xmr vectors (valid)', () => {
   }
 });
 
-Deno.test('deno: utils: padding', () => {
-  const coder = utils.padding(4, '=');
+Deno.test('deno: slow padding', () => {
+  const coder = paddingSlow(4, '=');
 
   assertEquals(coder.encode(['1']), ['1', '=']);
 

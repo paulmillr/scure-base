@@ -20,18 +20,16 @@ import {
   base64urlnopad,
   bech32,
   bech32m,
-  bytes,
   createBase58check,
   hex,
-  stringToBytes,
-  str,
-  utils,
   utf8,
 } from '../index.ts';
+import { alphabetSlow, convertRadix2, join, paddingSlow, radix2Slow, radixSlow } from './slow.ts';
 import { json, RANDOM } from './utils.ts';
 
 const base58check = createBase58check(sha256);
 const vectors = json('./vectors/base_vectors.json').v;
+const base64Fallback = __TESTS.base64Fallback;
 
 const CODERS = {
   base32,
@@ -47,10 +45,12 @@ const CODERS = {
 
 const NODE_CODERS = {
   hex: {
+    lib: hex,
     encode: (buf) => Buffer.from(buf).toString('hex'),
     decode: (str) => Buffer.from(str, 'hex'),
   },
   base64: {
+    lib: base64,
     encode: (buf) => Buffer.from(buf).toString('base64'),
     decode: (str) => Buffer.from(str, 'base64'),
   },
@@ -63,27 +63,16 @@ for (const c in NODE_CODERS) {
       const buf = RANDOM.slice(0, i);
 
       const nodeStr = node.encode(buf);
-      eql(nodeStr, str(c, buf), '111');
+      eql(nodeStr, node.lib.encode(buf), '111');
 
-      eql(hex.encode(bytes(c, nodeStr)), hex.encode(bytes(c, nodeStr)), '222');
+      eql(
+        hex.encode(node.lib.decode(nodeStr)),
+        hex.encode(Uint8Array.from(node.decode(nodeStr))),
+        '222'
+      );
     }
   });
 }
-
-should('deprecated codecs: reject exotic non-string selector', () => {
-  const type = {
-    toString() {
-      throw new Error('boom');
-    },
-  };
-  throws(
-    () => stringToBytes(type as any, 'abc'),
-    (err: unknown) =>
-      err instanceof TypeError &&
-      err.message ===
-        'Invalid encoding type. Available types: utf8, hex, base16, base32, base64, base64url, base58, base58xmr'
-  );
-});
 
 should('ascii', () => {
   const strings = [
@@ -331,7 +320,7 @@ should('14335 vectors, base32/64 58/hex/url/xmr, bech32/m', () => {
   for (let i = 0; i < vectors.length; i++) {
     const v = vectors[i];
     const data = Uint8Array.from(Buffer.from(v.data, 'hex'));
-    const coder = {
+    const coders = {
       base32,
       base32hex,
       base64,
@@ -347,8 +336,14 @@ should('14335 vectors, base32/64 58/hex/url/xmr, bech32/m', () => {
         decode: (str) => bech32m.fromWords(bech32m.decode(str, 9000).words),
       },
     };
-    eql(coder[v.fn_name].encode(data), v.exp, 'encode ' + i);
-    eql(coder[v.fn_name].decode(v.exp), data, 'decode ' + i);
+    const coder = coders[v.fn_name];
+    eql(coder.encode(data), v.exp, 'encode ' + i);
+    eql(coder.decode(v.exp), data, 'decode ' + i);
+    if (v.fn_name === 'base64') {
+      const fcoder = base64Fallback;
+      eql(fcoder.encode(data), v.exp, 'fallback encode ' + i);
+      eql(fcoder.decode(v.exp), data, 'fallback decode ' + i);
+    }
   }
 });
 
@@ -374,9 +369,9 @@ should('native base64 should ban spaces', () => {
   });
 });
 
-should('utils: radix2', () => {
+should('slow radix2', () => {
   const t = (bits) => {
-    const coder = utils.radix2(bits);
+    const coder = radix2Slow(bits);
     const val = new Uint8Array(1024).fill(0xff);
     const valPattern = Uint8Array.from({ length: 1024 }, (i, j) => j);
     eql(coder.decode(coder.encode(val)).slice(0, 1024), val, `radix2(${bits}, 0xff)`);
@@ -395,10 +390,10 @@ should('utils: radix2', () => {
   throws(() => t(31)); // 38 bits
   t(32); // ok
   // true is not a number
-  throws(() => utils.radix2(4).decode([1, true, 1, 1]));
+  throws(() => radix2Slow(4).decode([1, true, 1, 1]));
 });
 
-should('utils: radix2 encode size parity', () => {
+should('slow radix2 encode size parity', () => {
   const outcome = (fn: () => number[]) => {
     try {
       return { ok: true, value: fn() };
@@ -412,7 +407,7 @@ should('utils: radix2 encode size parity', () => {
   const sizes = [...Array.from({ length: 66 }, (_, i) => i), 1024, 4097];
   for (const bits of widths) {
     for (const revPadding of [false, true]) {
-      const coder = utils.radix2(bits, revPadding);
+      const coder = radix2Slow(bits, revPadding);
       for (const len of sizes)
         for (const zero of [false, true]) {
           const data = Uint8Array.from(
@@ -421,7 +416,7 @@ should('utils: radix2 encode size parity', () => {
           ).subarray(2, len + 2);
           eql(
             outcome(() => coder.encode(data)),
-            outcome(() => utils.convertRadix2(Array.from(data), 8, bits, !revPadding))
+            outcome(() => convertRadix2(Array.from(data), 8, bits, !revPadding))
           );
         }
     }
@@ -433,20 +428,17 @@ should('fast radix2 encode size parity', () => {
   const sizes = [...Array.from({ length: 66 }, (_, i) => i), 4095, 4096, 4097];
   const signedTail = Uint8Array.of(0xff, 0xff, 0xff, 0, 0);
   for (let bits = 1; bits <= 8; bits++) {
-    const coder = __TESTS.radix2Fast(bits);
+    const coder = __TESTS.radix2(bits);
     for (const len of sizes) {
       const data = Uint8Array.from({ length: len + 4 }, (_, i) => (i * 197 + len) & 0xff).subarray(
         2,
         len + 2
       );
-      eql(
-        coder.encode(data),
-        Uint8Array.from(utils.convertRadix2(Array.from(data), 8, bits, true))
-      );
+      eql(coder.encode(data), Uint8Array.from(convertRadix2(Array.from(data), 8, bits, true)));
     }
     eql(
       coder.encode(signedTail),
-      Uint8Array.from(utils.convertRadix2(Array.from(signedTail), 8, bits, true))
+      Uint8Array.from(convertRadix2(Array.from(signedTail), 8, bits, true))
     );
   }
 
@@ -461,8 +453,7 @@ should('fast radix2 encode size parity', () => {
         2,
         len + 2
       );
-      const expected = utils
-        .convertRadix2(Array.from(data), 8, bits, true)
+      const expected = convertRadix2(Array.from(data), 8, bits, true)
         .map((digit) => alphabet[digit])
         .join('');
       const actual = coder.encode(data);
@@ -471,14 +462,14 @@ should('fast radix2 encode size parity', () => {
     }
   }
   throws(
-    () => __TESTS.alphabetFast('01').encode(Uint8Array.of(0, 2)),
-    /alphabet\.encode: digit index outside alphabet/
+    () => __TESTS.alphabet('01').encode(Uint8Array.of(0, 2)),
+    /alphabet\.encode: invalid digit/
   );
 });
 
-should('utils: radix', () => {
+should('slow radix', () => {
   const t = (base) => {
-    const coder = utils.radix(base);
+    const coder = radixSlow(base);
     const val = new Uint8Array(128).fill(0xff);
     const valPattern = Uint8Array.from({ length: 128 }, (i, j) => j);
     eql(coder.decode(coder.encode(val)).slice(0, 128), val, `radix(${base}, 0xff)`);
@@ -497,12 +488,12 @@ should('utils: radix', () => {
   throws(() => t(35195299949887 + 1));
   throws(() => t(2 ** i));
   // true is not a number
-  throws(() => utils.radix(2 ** 4).decode([1, true, 1, 1]));
+  throws(() => radixSlow(2 ** 4).decode([1, true, 1, 1]));
 });
 
-should('utils: alphabet', () => {
-  const a = utils.alphabet('12345');
-  const ab = utils.alphabet(['11', '2', '3', '4', '5']);
+should('slow alphabet', () => {
+  const a = alphabetSlow('12345');
+  const ab = alphabetSlow(['11', '2', '3', '4', '5']);
   eql(a.encode([1]), ['2']);
   eql(ab.encode([0]), ['11']);
   eql(a.encode([2]), ab.encode([2]));
@@ -512,12 +503,12 @@ should('utils: alphabet', () => {
   throws(() => a.decode(['toString']));
 });
 
-should('utils: join', () => {
-  throws(() => utils.join('1').encode(['1', 1, true]));
+should('slow join', () => {
+  throws(() => join('1').encode(['1', 1, true]));
 });
 
-should('utils: padding', () => {
-  const coder = utils.padding(4, '=');
+should('slow padding', () => {
+  const coder = paddingSlow(4, '=');
   throws(() => coder.encode(['1', 1, true]));
   throws(() => coder.decode(['1', 1, true, '=']));
 });

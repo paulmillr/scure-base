@@ -22,7 +22,7 @@
     "benchmark:thirdparty": "npm --prefix benchmark/thirdparty run benchmark",
     "benchmark:thirdparty22": "npm --prefix benchmark/thirdparty run benchmark:22",
     "build": "tsc",
-    "build:release": "npx --no @paulmillr/jsbt bundle test/build",
+    "build:release": "npx --no @paulmillr/jsbt bundle --dir=test/build",
     "check": "npx --no @paulmillr/jsbt check package.json",
     "format": "prettier --write index.ts test/*.test.ts",
     "test": "node test/index.ts",
@@ -45,6 +45,7 @@
     "base-x",
     "base"
   ],
+  "sideEffects": false,
   "homepage": "https://paulmillr.com/noble/#scure",
   "funding": "https://paulmillr.com/funding/",
   "repository": {
