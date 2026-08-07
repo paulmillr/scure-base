@@ -1,5 +1,5 @@
+import { it } from '@paulmillr/jsbt/test.js';
 import fc from 'fast-check';
-import { should } from '@paulmillr/jsbt/test.js';
 import { deepStrictEqual as eql, throws } from 'node:assert';
 import {
   base16,
@@ -49,7 +49,7 @@ const B58_ABC = {
 };
 const B58_FAST = { base58, base58flickr, base58xrp };
 
-should('slow parity: base58 encode', () => {
+it('slow parity: base58 encode', () => {
   for (const name of Object.keys(B58_ABC) as (keyof typeof B58_ABC)[]) {
     const fast = B58_FAST[name];
     const slow = genBase58Slow(B58_ABC[name]);
@@ -67,7 +67,7 @@ should('slow parity: base58 encode', () => {
   }
 });
 
-should('slow parity: base58 decode', () => {
+it('slow parity: base58 decode', () => {
   for (const name of Object.keys(B58_ABC) as (keyof typeof B58_ABC)[]) {
     const fast = B58_FAST[name];
     const abc = B58_ABC[name];
@@ -98,7 +98,7 @@ should('slow parity: base58 decode', () => {
   }
 });
 
-should('slow parity: base58 limb/group boundaries', () => {
+it('slow parity: base58 limb/group boundaries', () => {
   // The chunked conversion works in 16-bit limbs and 58**5 digit groups: exercise
   // every length residue and saturated/zero/sparse patterns around those boundaries.
   const slow = genBase58Slow(B58_ABC.base58);
@@ -129,7 +129,7 @@ should('slow parity: base58 limb/group boundaries', () => {
   }
 });
 
-should('slow parity: rfc4648 chains', () => {
+it('slow parity: rfc4648 chains', () => {
   const cases = [
     { fast: base16, bits: 4, abc: '0123456789ABCDEF', pad: false },
     { fast: base32, bits: 5, abc: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567', pad: true },
@@ -168,7 +168,7 @@ should('slow parity: rfc4648 chains', () => {
   }
 });
 
-should('slow parity: bech32 words', () => {
+it('slow parity: bech32 words', () => {
   const slowWords = radix2Slow(5);
   fc.assert(
     fc.property(fc.uint8Array({ maxLength: 256 }), (data) => {
@@ -198,7 +198,7 @@ should('slow parity: bech32 words', () => {
   throws(() => bech32.toWords('a' as any), TypeError);
 });
 
-should('slow parity: bech32 alphabet + checksum', () => {
+it('slow parity: bech32 alphabet + checksum', () => {
   const words5 = fc.array(fc.integer({ min: 0, max: 31 }), { minLength: 0, maxLength: 64 });
   fc.assert(
     fc.property(words5, (words) => {
@@ -215,4 +215,4 @@ should('slow parity: bech32 alphabet + checksum', () => {
   );
 });
 
-should.runWhen(import.meta.url);
+it.runWhen(import.meta.url);

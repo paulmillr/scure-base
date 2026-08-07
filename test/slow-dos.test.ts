@@ -1,4 +1,4 @@
-import { should } from '@paulmillr/jsbt/test.js';
+import { it } from '@paulmillr/jsbt/test.js';
 import { deepStrictEqual, rejects } from 'node:assert';
 import { CODERS } from './bases.test.ts';
 import { RANDOM, stats } from './utils.ts';
@@ -87,7 +87,7 @@ async function isLinear(callback, iters = 128) {
 }
 
 // Verify that it correctly detects functions with quadratic complexity
-should(
+it(
   'detect quadratic functions',
   retry(async () => {
     // 16 iters since quadratic is very slow
@@ -109,14 +109,14 @@ for (const coder in CODERS) {
   // base58xmr's 8-byte block encoding makes it linear; it used to measure quadratic
   // anyway because decode grew its output via per-block concat, fixed since.
   if (coder.startsWith('base58') && coder !== 'base58xmr') {
-    should(
+    it(
       `DoS: ${coder} is quadratic :(`,
       retry(async () => {
         await rejects(() => isLinear((buf) => CODERS[coder].decode(CODERS[coder].encode(buf)), 16));
       })
     );
   } else {
-    should(
+    it(
       `DoS: ${coder}`,
       retry(async () => await isLinear((buf) => CODERS[coder].decode(CODERS[coder].encode(buf))))
     );
@@ -124,4 +124,4 @@ for (const coder in CODERS) {
 }
 
 // takes ~8min
-should.runWhen(import.meta.url);
+it.runWhen(import.meta.url);

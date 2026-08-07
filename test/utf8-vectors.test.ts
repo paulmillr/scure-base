@@ -1,4 +1,4 @@
-import { should } from '@paulmillr/jsbt/test.js';
+import { it } from '@paulmillr/jsbt/test.js';
 import { deepStrictEqual as eql } from 'node:assert';
 import { __TESTS, utf8 } from '../index.ts';
 import { json } from './utils.ts';
@@ -34,7 +34,7 @@ const same = (a, b) => {
   );
 };
 
-should('utf8 vectors: fatal decode parity', () => {
+it('utf8 vectors: fatal decode parity', () => {
   for (const t of fatal.fatal_invalid) {
     const input = Uint8Array.from(t.input);
     same(
@@ -49,7 +49,7 @@ should('utf8 vectors: fatal decode parity', () => {
   );
 });
 
-should('utf8 vectors: BOM parity', () => {
+it('utf8 vectors: BOM parity', () => {
   const plain = Uint8Array.from(bom.byte_order_marks.bytes);
   const withBom = Uint8Array.from([...bom.byte_order_marks.bom, ...bom.byte_order_marks.bytes]);
   const ignoredBom = Uint8Array.from(bom.ignore_bom.bytes);
@@ -75,7 +75,7 @@ should('utf8 vectors: BOM parity', () => {
   );
 });
 
-should('utf8 vectors: surrogate parity', () => {
+it('utf8 vectors: surrogate parity', () => {
   for (const t of surrogates.cases)
     same(
       () => utf8.decode(t.input),
@@ -83,4 +83,4 @@ should('utf8 vectors: surrogate parity', () => {
     );
 });
 
-should.runWhen(import.meta.url);
+it.runWhen(import.meta.url);

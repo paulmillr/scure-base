@@ -1,4 +1,4 @@
-import { should } from '@paulmillr/jsbt/test.js';
+import { it } from '@paulmillr/jsbt/test.js';
 import fc from 'fast-check';
 import { deepStrictEqual as eql, throws } from 'node:assert';
 import { __TESTS, utf8 } from '../index.ts';
@@ -45,7 +45,7 @@ const isWellFormedUri = (str: string): boolean => {
   }
 };
 
-should('utf8 fuzz: valid strings', () =>
+it('utf8 fuzz: valid strings', () =>
   fc.assert(
     fc.property(validString, (str) => {
       const bytes = utf8.decode(str);
@@ -54,30 +54,27 @@ should('utf8 fuzz: valid strings', () =>
       eql(utf8Fallback.encode(bytes), utf8.encode(bytes));
     }),
     { numRuns: 10000 }
-  )
-);
+  ));
 
-should('utf8 fuzz: invalid bytes', () =>
+it('utf8 fuzz: invalid bytes', () =>
   fc.assert(
     fc.property(invalidBytes, (bytes) => {
       throws(() => utf8.encode(bytes), TypeError);
       throws(() => utf8Fallback.encode(bytes), TypeError);
     }),
     { numRuns: 10000 }
-  )
-);
+  ));
 
-should('utf8 fuzz: malformed strings', () =>
+it('utf8 fuzz: malformed strings', () =>
   fc.assert(
     fc.property(malformedString, (str) => {
       throws(() => utf8.decode(str), TypeError);
       throws(() => utf8Fallback.decode(str), TypeError);
     }),
     { numRuns: 10000 }
-  )
-);
+  ));
 
-should('_isWellFormedShim fuzz: parity with native isWellFormed', () => {
+it('_isWellFormedShim fuzz: parity with native isWellFormed', () => {
   if (typeof ''.isWellFormed !== 'function') return;
   fc.assert(
     fc.property(utf16String, (str) => {
@@ -87,7 +84,7 @@ should('_isWellFormedShim fuzz: parity with native isWellFormed', () => {
   );
 });
 
-should('encodeURI well-formed check fuzz: parity with native isWellFormed', () => {
+it('encodeURI well-formed check fuzz: parity with native isWellFormed', () => {
   if (typeof ''.isWellFormed !== 'function') return;
   fc.assert(
     fc.property(utf16String, (str) => {
@@ -97,4 +94,4 @@ should('encodeURI well-formed check fuzz: parity with native isWellFormed', () =
   );
 });
 
-should.runWhen(import.meta.url);
+it.runWhen(import.meta.url);

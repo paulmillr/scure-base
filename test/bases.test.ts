@@ -1,5 +1,5 @@
 import { sha256 } from '@noble/hashes/sha2.js';
-import { should } from '@paulmillr/jsbt/test.js';
+import { it } from '@paulmillr/jsbt/test.js';
 import { deepStrictEqual as eql, throws } from 'node:assert';
 import { Buffer } from 'node:buffer';
 import {
@@ -58,7 +58,7 @@ const NODE_CODERS = {
 
 for (const c in NODE_CODERS) {
   const node = NODE_CODERS[c];
-  should(`${c} against node`, () => {
+  it(`${c} against node`, () => {
     for (let i = 0; i < 1024; i++) {
       const buf = RANDOM.slice(0, i);
 
@@ -74,7 +74,7 @@ for (const c in NODE_CODERS) {
   });
 }
 
-should('ascii', () => {
+it('ascii', () => {
   const strings = [
     'H2C-OVERSIZE-DST-',
     'Seed-',
@@ -118,7 +118,7 @@ should('ascii', () => {
   for (const b of bytesFAIL) throws(() => ascii.encode(b), RangeError);
 });
 
-should('utf8: valid roundtrip', () => {
+it('utf8: valid roundtrip', () => {
   const strings = [
     'hello',
     'Привет hello 世界',
@@ -141,7 +141,7 @@ should('utf8: valid roundtrip', () => {
   }
 });
 
-should('utf8Fallback: fixed-case parity with utf8', () => {
+it('utf8Fallback: fixed-case parity with utf8', () => {
   const { utf8Fallback } = __TESTS;
   const strings = [
     'hello',
@@ -215,14 +215,14 @@ should('utf8Fallback: fixed-case parity with utf8', () => {
   );
 });
 
-should('utf8: preserve leading BOM', () => {
+it('utf8: preserve leading BOM', () => {
   const s = '\uFEFF';
   const bytes = new TextEncoder().encode(s);
   eql(utf8.decode(s), bytes);
   eql(utf8.encode(bytes), s);
 });
 
-should('utf8: preserve interior and trailing BOM', () => {
+it('utf8: preserve interior and trailing BOM', () => {
   const strings = ['a\uFEFFb', 'a\uFEFF', '\uFEFF\uFEFFx'];
   for (const s of strings) {
     const bytes = new TextEncoder().encode(s);
@@ -231,7 +231,7 @@ should('utf8: preserve interior and trailing BOM', () => {
   }
 });
 
-should('utf8: reject invalid byte sequences', () => {
+it('utf8: reject invalid byte sequences', () => {
   const invalidBytes = [
     Uint8Array.of(0xff),
     Uint8Array.of(0xc0, 0x80), // overlong NUL
@@ -254,7 +254,7 @@ should('utf8: reject invalid byte sequences', () => {
   for (const b of invalidBytes) throws(() => utf8.encode(b), TypeError);
 });
 
-should('utf8: reject malformed JS strings', () => {
+it('utf8: reject malformed JS strings', () => {
   const invalidStrings = [
     '\uD83D',
     '\uDE00',
@@ -270,7 +270,7 @@ should('utf8: reject malformed JS strings', () => {
   for (const s of invalidStrings) throws(() => utf8.decode(s), TypeError);
 });
 
-should('_isWellFormedShim: fixed cases', () => {
+it('_isWellFormedShim: fixed cases', () => {
   const { _isWellFormedShim } = __TESTS;
   const uri = (str: string) => {
     try {
@@ -296,7 +296,7 @@ should('_isWellFormedShim: fixed cases', () => {
   }
 });
 
-should('utf8: reject non-string input', () => {
+it('utf8: reject non-string input', () => {
   throws(() => utf8.decode(1 as any), TypeError);
   throws(() => utf8.decode(Symbol('x') as any), TypeError);
   throws(
@@ -310,13 +310,13 @@ should('utf8: reject non-string input', () => {
   );
 });
 
-should('utf8: reject non-Uint8Array byte input', () => {
+it('utf8: reject non-Uint8Array byte input', () => {
   throws(() => utf8.encode(new Uint16Array([0x6869]) as any), TypeError);
   throws(() => utf8.encode(new Uint8Array([0x68, 0x69]).buffer as any), TypeError);
   throws(() => utf8.encode(new DataView(Uint8Array.of(0x68, 0x69).buffer) as any), TypeError);
 });
 
-should('14335 vectors, base32/64 58/hex/url/xmr, bech32/m', () => {
+it('14335 vectors, base32/64 58/hex/url/xmr, bech32/m', () => {
   for (let i = 0; i < vectors.length; i++) {
     const v = vectors[i];
     const data = Uint8Array.from(Buffer.from(v.data, 'hex'));
@@ -349,27 +349,27 @@ should('14335 vectors, base32/64 58/hex/url/xmr, bech32/m', () => {
 
 const TEST_BYTES = new TextEncoder().encode('@scure/base encoding / decoding');
 
-should('nopad variants: base32', () => {
+it('nopad variants: base32', () => {
   eql(base32nopad.encode(TEST_BYTES), 'IBZWG5LSMUXWEYLTMUQGK3TDN5SGS3THEAXSAZDFMNXWI2LOM4');
   eql(base32nopad.decode('IBZWG5LSMUXWEYLTMUQGK3TDN5SGS3THEAXSAZDFMNXWI2LOM4'), TEST_BYTES);
   eql(base32hexnopad.encode(TEST_BYTES), '81PM6TBICKNM4OBJCKG6ARJ3DTI6IRJ740NI0P35CDNM8QBECS');
   eql(base32hexnopad.decode('81PM6TBICKNM4OBJCKG6ARJ3DTI6IRJ740NI0P35CDNM8QBECS'), TEST_BYTES);
 });
 
-should('nopad variants: base64', () => {
+it('nopad variants: base64', () => {
   eql(base64nopad.encode(TEST_BYTES), 'QHNjdXJlL2Jhc2UgZW5jb2RpbmcgLyBkZWNvZGluZw');
   eql(base64nopad.decode('QHNjdXJlL2Jhc2UgZW5jb2RpbmcgLyBkZWNvZGluZw'), TEST_BYTES);
   eql(base64urlnopad.encode(TEST_BYTES), 'QHNjdXJlL2Jhc2UgZW5jb2RpbmcgLyBkZWNvZGluZw');
   eql(base64urlnopad.decode('QHNjdXJlL2Jhc2UgZW5jb2RpbmcgLyBkZWNvZGluZw'), TEST_BYTES);
 });
 
-should('native base64 should ban spaces', () => {
+it('native base64 should ban spaces', () => {
   throws(() => {
     base64.decode('sxJ+knIJ1hI2snFHWiQEJb   qEvknAX3vUieb0K7KmcHI=');
   });
 });
 
-should('slow radix2', () => {
+it('slow radix2', () => {
   const t = (bits) => {
     const coder = radix2Slow(bits);
     const val = new Uint8Array(1024).fill(0xff);
@@ -393,7 +393,7 @@ should('slow radix2', () => {
   throws(() => radix2Slow(4).decode([1, true, 1, 1]));
 });
 
-should('slow radix2 encode size parity', () => {
+it('slow radix2 encode size parity', () => {
   const outcome = (fn: () => number[]) => {
     try {
       return { ok: true, value: fn() };
@@ -423,7 +423,7 @@ should('slow radix2 encode size parity', () => {
   }
 });
 
-should('fast radix2 encode size parity', () => {
+it('fast radix2 encode size parity', () => {
   // The large triplet leaves zero, one, and two bytes after repeated three-byte batches.
   const sizes = [...Array.from({ length: 66 }, (_, i) => i), 4095, 4096, 4097];
   const signedTail = Uint8Array.of(0xff, 0xff, 0xff, 0, 0);
@@ -467,7 +467,7 @@ should('fast radix2 encode size parity', () => {
   );
 });
 
-should('slow radix', () => {
+it('slow radix', () => {
   const t = (base) => {
     const coder = radixSlow(base);
     const val = new Uint8Array(128).fill(0xff);
@@ -491,7 +491,7 @@ should('slow radix', () => {
   throws(() => radixSlow(2 ** 4).decode([1, true, 1, 1]));
 });
 
-should('slow alphabet', () => {
+it('slow alphabet', () => {
   const a = alphabetSlow('12345');
   const ab = alphabetSlow(['11', '2', '3', '4', '5']);
   eql(a.encode([1]), ['2']);
@@ -503,15 +503,15 @@ should('slow alphabet', () => {
   throws(() => a.decode(['toString']));
 });
 
-should('slow join', () => {
+it('slow join', () => {
   throws(() => join('1').encode(['1', 1, true]));
 });
 
-should('slow padding', () => {
+it('slow padding', () => {
   const coder = paddingSlow(4, '=');
   throws(() => coder.encode(['1', 1, true]));
   throws(() => coder.decode(['1', 1, true, '=']));
 });
 
 export { CODERS };
-should.runWhen(import.meta.url);
+it.runWhen(import.meta.url);

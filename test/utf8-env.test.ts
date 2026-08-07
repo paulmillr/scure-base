@@ -1,4 +1,4 @@
-import { should } from '@paulmillr/jsbt/test.js';
+import { it } from '@paulmillr/jsbt/test.js';
 import { deepStrictEqual as eql } from 'node:assert';
 
 const withUtf8Globals = async (
@@ -27,14 +27,14 @@ const withUtf8Globals = async (
   }
 };
 
-should('utf8 env: import without TextEncoder/TextDecoder', async () => {
+it('utf8 env: import without TextEncoder/TextDecoder', async () => {
   await withUtf8Globals({ TextEncoder: undefined, TextDecoder: undefined }, async () => {
     const mod = await import(`../index.js?utf8-env=${Date.now()}`);
     eql(typeof mod.utf8, 'object');
   });
 });
 
-should('utf8 env: methods fall back without TextEncoder/TextDecoder', async () => {
+it('utf8 env: methods fall back without TextEncoder/TextDecoder', async () => {
   await withUtf8Globals({ TextEncoder: undefined, TextDecoder: undefined }, async () => {
     const mod = await import(`../index.js?utf8-env=${Date.now() + 1}`);
     eql(mod.utf8.encode(Uint8Array.of(0x61)), 'a');
@@ -42,7 +42,7 @@ should('utf8 env: methods fall back without TextEncoder/TextDecoder', async () =
   });
 });
 
-should('utf8 env: encode falls back when TextDecoder is missing', async () => {
+it('utf8 env: encode falls back when TextDecoder is missing', async () => {
   await withUtf8Globals({ TextEncoder, TextDecoder: undefined }, async () => {
     const mod = await import(`../index.js?utf8-env=${Date.now() + 2}`);
     eql(mod.utf8.encode(Uint8Array.of(0x61)), 'a');
@@ -50,7 +50,7 @@ should('utf8 env: encode falls back when TextDecoder is missing', async () => {
   });
 });
 
-should('utf8 env: decode falls back when TextEncoder is missing', async () => {
+it('utf8 env: decode falls back when TextEncoder is missing', async () => {
   await withUtf8Globals({ TextEncoder: undefined, TextDecoder }, async () => {
     const mod = await import(`../index.js?utf8-env=${Date.now() + 3}`);
     eql(mod.utf8.encode(Uint8Array.of(0x61)), 'a');
@@ -58,7 +58,7 @@ should('utf8 env: decode falls back when TextEncoder is missing', async () => {
   });
 });
 
-should('base env: rfc4648 string building falls back without TextDecoder', async () => {
+it('base env: rfc4648 string building falls back without TextDecoder', async () => {
   await withUtf8Globals({ TextEncoder: undefined, TextDecoder: undefined }, async () => {
     const mod = await import(`../index.js?base-env=${Date.now() + 4}`);
     // Known vectors through the String.fromCharCode path
@@ -72,4 +72,4 @@ should('base env: rfc4648 string building falls back without TextDecoder', async
   });
 });
 
-should.runWhen(import.meta.url);
+it.runWhen(import.meta.url);

@@ -1,5 +1,5 @@
+import { describe, it } from '@paulmillr/jsbt/test.js';
 import fc from 'fast-check';
-import { describe, should } from '@paulmillr/jsbt/test.js';
 import { deepStrictEqual, throws } from 'node:assert';
 import { __TESTS, hex } from '../index.ts';
 import { alphabetSlow, convertRadix, convertRadix2, join, paddingSlow } from './slow.ts';
@@ -24,7 +24,7 @@ describe('utils', () => {
     { bytes: Uint8Array.from([0xca, 0xfe]), hex: 'cafe' },
     { bytes: Uint8Array.from(new Array(1024).fill(0x69)), hex: '69'.repeat(1024) },
   ];
-  should('hexToBytes', () => {
+  it('hexToBytes', () => {
     for (let v of staticHexVectors) deepStrictEqual(hexToBytes(v.hex), v.bytes);
     for (let v of staticHexVectors) deepStrictEqual(hexToBytes(v.hex.toUpperCase()), v.bytes);
     for (let [v, repr] of getTypeTests()) {
@@ -32,14 +32,14 @@ describe('utils', () => {
       throws(() => hexToBytes(v));
     }
   });
-  should('bytesToHex', () => {
+  it('bytesToHex', () => {
     for (let v of staticHexVectors) deepStrictEqual(bytesToHex(v.bytes), v.hex);
     for (let [v, repr] of getTypeTests()) {
       if (repr.startsWith('ui8a')) continue;
       throws(() => bytesToHex(v));
     }
   });
-  should('hexToBytes <=> bytesToHex roundtrip', () =>
+  it('hexToBytes <=> bytesToHex roundtrip', () =>
     fc.assert(
       fc.property(hexaString({ minLength: 2, maxLength: 64 }), (hex) => {
         if (hex.length % 2 !== 0) return;
@@ -48,9 +48,8 @@ describe('utils', () => {
         if (typeof Buffer !== 'undefined')
           deepStrictEqual(hexToBytes(hex), Uint8Array.from(Buffer.from(hex, 'hex')));
       })
-    )
-  );
-  should('validator constructors', () => {
+    ));
+  it('validator constructors', () => {
     const { alphabet, radix58, radix2, checksum } = __TESTS;
     // Slow reference implementations (test/slow.ts)
     throws(() => alphabetSlow('abc').encode('x' as any), TypeError);
@@ -78,7 +77,7 @@ describe('utils', () => {
     throws(() => checksum(1, (data) => data).encode('x' as any), TypeError);
     throws(() => checksum(1, (data) => data).decode('x' as any), TypeError);
   });
-  // should('concatBytes', () => {
+  // it('concatBytes', () => {
   //   const a = 1;
   //   const b = 2;
   //   const c = 0xff;
@@ -98,7 +97,7 @@ describe('utils', () => {
   //     });
   //   }
   // });
-  // should('concatBytes random', () =>
+  // it('concatBytes random', () =>
   //   fc.assert(
   //     fc.property(fc.uint8Array(), fc.uint8Array(), fc.uint8Array(), (a, b, c) => {
   //       const expected = Uint8Array.from(Buffer.concat([a, b, c]));
@@ -113,4 +112,4 @@ describe('utils', () => {
 // if (import.meta.url === url.pathToFileURL(process.argv[1]).href) {
 //   should.run();
 // }
-should.runWhen(import.meta.url);
+it.runWhen(import.meta.url);

@@ -1,4 +1,4 @@
-import { should } from '@paulmillr/jsbt/test.js';
+import { it } from '@paulmillr/jsbt/test.js';
 import { deepStrictEqual as eql, throws } from 'node:assert';
 import { Buffer } from 'node:buffer';
 import { bech32, bech32m } from '../index.js';
@@ -277,85 +277,85 @@ const VALID_WORDS = [
 ];
 
 for (let v of BECH32M_VALID) {
-  should(`encode ${v.prefix} ${v.words}`, () => {
+  it(`encode ${v.prefix} ${v.words}`, () => {
     eql(bech32m.encode(v.prefix, v.words, v.limit), v.string.toLowerCase());
   });
-  should(`encode/decode ${v.prefix} ${v.words}`, () => {
+  it(`encode/decode ${v.prefix} ${v.words}`, () => {
     const expected = { prefix: v.prefix.toLowerCase(), words: v.words };
     eql(bech32m.decode(bech32m.encode(v.prefix, v.words, v.limit), v.limit), expected);
   });
-  should(`decode ${v.string}`, () => {
+  it(`decode ${v.string}`, () => {
     const expected = { prefix: v.prefix.toLowerCase(), words: v.words };
     eql(bech32m.decodeUnsafe(v.string, v.limit), expected);
     eql(bech32m.decode(v.string, v.limit), expected);
   });
-  should(`throw on ${v.string} with 1 bit flipped`, () => {
+  it(`throw on ${v.string} with 1 bit flipped`, () => {
     const buffer = Buffer.from(v.string, 'utf8');
     buffer[v.string.lastIndexOf('1') + 1] ^= 0x1; // flip a bit, after the prefix
     const str = buffer.toString('utf8');
     eql(bech32m.decodeUnsafe(str, v.limit), undefined);
     throws(() => bech32m.decode(str, v.limit));
   });
-  should(`throw on bech32m vector with bech32 ${v.string} `, () => {
+  it(`throw on bech32m vector with bech32 ${v.string} `, () => {
     eql(bech32.decodeUnsafe(v.string, v.limit), undefined);
     throws(() => bech32.decode(v.string, v.limit));
   });
 }
 
 for (let v of BECH32_VALID) {
-  should(`encode ${v.prefix} ${v.words}`, () => {
+  it(`encode ${v.prefix} ${v.words}`, () => {
     eql(bech32.encode(v.prefix, v.words, v.limit), v.string.toLowerCase());
   });
-  should(`encode/decode ${v.prefix} ${v.words}`, () => {
+  it(`encode/decode ${v.prefix} ${v.words}`, () => {
     const expected = { prefix: v.prefix.toLowerCase(), words: v.words };
     eql(bech32.decode(bech32.encode(v.prefix, v.words, v.limit), v.limit), expected);
   });
-  should(`decode ${v.string}`, () => {
+  it(`decode ${v.string}`, () => {
     const expected = { prefix: v.prefix.toLowerCase(), words: v.words };
     eql(bech32.decodeUnsafe(v.string, v.limit), expected);
     eql(bech32.decode(v.string, v.limit), expected);
   });
-  should(`throw on ${v.string} with 1 bit flipped`, () => {
+  it(`throw on ${v.string} with 1 bit flipped`, () => {
     const buffer = Buffer.from(v.string, 'utf8');
     buffer[v.string.lastIndexOf('1') + 1] ^= 0x1; // flip a bit, after the prefix
     const str = buffer.toString('utf8');
     eql(bech32.decodeUnsafe(str, v.limit), undefined);
     throws(() => bech32.decode(str, v.limit));
   });
-  should(`throw on bech32 vector with bech32m ${v.string} `, () => {
+  it(`throw on bech32 vector with bech32m ${v.string} `, () => {
     eql(bech32m.decodeUnsafe(v.string, v.limit), undefined);
     throws(() => bech32m.decode(v.string, v.limit));
   });
 }
 
 for (const str of BECH32_INVALID_DECODE) {
-  should(`throw on decode ${str}`, () => {
+  it(`throw on decode ${str}`, () => {
     eql(bech32.decodeUnsafe(str), undefined);
     throws(() => bech32.decode(str));
   });
 }
 
 for (let v of BECH32_INVALID_ENCODE) {
-  should(`throw on encode`, () => {
+  it(`throw on encode`, () => {
     throws(() => bech32.encode(v.prefix, v.words, v.limit));
   });
 }
 
 for (const str of BECH32M_INVALID_DECODE) {
-  should(`throw on decode ${str} (bech32m)`, () => {
+  it(`throw on decode ${str} (bech32m)`, () => {
     eql(bech32m.decodeUnsafe(str), undefined);
     throws(() => bech32m.decode(str));
   });
 }
 
 for (let v of BECH32M_INVALID_ENCODE) {
-  should(`throw on encode`, () => {
+  it(`throw on encode`, () => {
     throws(() => bech32m.encode(v.prefix, v.words, v.limit));
   });
 }
 
 for (let v of VALID_WORDS) {
-  should(`fromWords/toWords ${v.hex}`, () => {
+  it(`fromWords/toWords ${v.hex}`, () => {
     const words = bech32.toWords(Buffer.from(v.hex, 'hex'));
     eql(Array.from(words), Array.from(v.words));
     const bytes = Buffer.from(bech32.fromWords(v.words));
@@ -366,21 +366,21 @@ for (let v of VALID_WORDS) {
 }
 
 for (let v of INVALID_WORDS) {
-  should(`throw om fromWords`, () => {
+  it(`throw om fromWords`, () => {
     eql(bech32.fromWordsUnsafe(v), undefined);
     throws(() => bech32.fromWords(v));
   });
 }
 
-should('toWords/toWordsUnsafe accept Uint8Array', () => {
+it('toWords/toWordsUnsafe accept Uint8Array', () => {
   const bytes = new Uint8Array([0x00, 0x11, 0x22, 0x33, 0xff]);
   const words = bech32.toWords(bytes);
   eql(words, [0, 0, 8, 18, 4, 12, 31, 31]);
 });
 
-should('encode accepts Uint8Array', () => {
+it('encode accepts Uint8Array', () => {
   const bytes = new Uint8Array([0, 0, 8, 18, 4, 12, 31, 31]);
   eql(bech32.encode('test', bytes), 'test1qqgjyvlld2nz37');
 });
 
-should.runWhen(import.meta.url);
+it.runWhen(import.meta.url);

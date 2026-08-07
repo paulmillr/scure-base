@@ -1,4 +1,4 @@
-import { describe, should } from '@paulmillr/jsbt/test.js';
+import { describe, it } from '@paulmillr/jsbt/test.js';
 import { deepStrictEqual as eql, throws } from 'node:assert';
 import { Buffer } from 'node:buffer';
 import { bech32, bech32m } from '../index.ts';
@@ -68,11 +68,11 @@ function decodeBtc(address) {
 describe('bip173', () => {
   describe('valid', () => {
     for (const [v, hex] of VALID) {
-      should(`valid ${v}`, () => eql(decodeBtc(v), hex));
+      it(`valid ${v}`, () => eql(decodeBtc(v), hex));
     }
   });
   for (const [v, description] of INVALID) {
-    should(`invalid: ${v} (${description})`, () => throws(() => decodeBtc(v)));
+    it(`invalid: ${v} (${description})`, () => throws(() => decodeBtc(v)));
   }
 });
 
@@ -209,11 +209,11 @@ function decodeBtc350(address) {
 describe('bip350', () => {
   describe('valid', () => {
     for (const [v, hex] of VALID_BIP350) {
-      should(`valid ${v}`, () => eql(decodeBtc350(v), hex));
+      it(`valid ${v}`, () => eql(decodeBtc350(v), hex));
     }
   });
   for (const [v, description] of INVALID_BIP350) {
-    should(`invalid: ${v} (${description})`, () => throws(() => decodeBtc350(v)));
+    it(`invalid: ${v} (${description})`, () => throws(() => decodeBtc350(v)));
   }
 });
 
@@ -224,7 +224,7 @@ describe('bip350', () => {
 // convert to bytes only inside tagged fields. Can be very nice small parser
 // using micro-packed, but unfortunately micro-packed only works with bytes
 // for now, and this protocol is based on 5-bit words.
-should('lightning invoices (GH-18)', () => {
+it('lightning invoices (GH-18)', () => {
   /*
 URL: https://lightningdecoder.com/lnbc1u1pjvy84epp5zrapr3w7tqelvjzwm0rwsac2ga79m982uruducydr2u6zwlhpasqhp5fe47lwjexge0lff7ru2g6757g35qajscy39hsz4dvqe97gnt3d3scqzzsxqyz5vqsp5ptv9dz544r5pxd3gkulqelakrtmx4nf47xw4mmm8a0u8j2up7mqs9qyyssqumxjespzkuwzdppw3hzkawgdedjyu2e0wnsk3t3y8g7mkpz49nn9rlrzsj07tz3hjnld80j749069puz9uanhr55p9ngw46cy2w295qpktsz9y
 Recovery Flag: 1
@@ -331,4 +331,4 @@ Expire Time
   eql(tags.length, 6);
 });
 
-should.runWhen(import.meta.url);
+it.runWhen(import.meta.url);

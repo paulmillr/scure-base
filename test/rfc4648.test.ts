@@ -1,4 +1,4 @@
-import { should } from '@paulmillr/jsbt/test.js';
+import { it } from '@paulmillr/jsbt/test.js';
 import { deepStrictEqual as eql, throws } from 'node:assert';
 import { Buffer } from 'node:buffer';
 import { base16, base32, base32crockford, base32hex, base64, base64url } from '../index.ts';
@@ -157,21 +157,21 @@ const BASE64_URL = [['fbff', '-_8=']];
 function genTests(name, coder, VECTORS, BAD_VECTORS, encode = true) {
   for (const [hex, expected] of VECTORS) {
     if (encode) {
-      should(`encode ${name} ${hex}`, () => {
+      it(`encode ${name} ${hex}`, () => {
         eql(coder.encode(new Uint8Array(Buffer.from(hex, 'hex'))), expected);
       });
     }
-    should(`decode ${name}: ${hex}`, () => {
+    it(`decode ${name}: ${hex}`, () => {
       eql(coder.decode(expected), new Uint8Array(Buffer.from(hex, 'hex')));
     });
     // X=decode(encode(X))
-    should(`encode/decode ${name}: ${hex}`, () => {
+    it(`encode/decode ${name}: ${hex}`, () => {
       const hexBytes = new Uint8Array(Buffer.from(hex, 'hex'));
       eql(coder.decode(coder.encode(hexBytes)), hexBytes);
     });
   }
   if (BAD_VECTORS) {
-    should(`${name}: throw on decode bad vectors`, () => {
+    it(`${name}: throw on decode bad vectors`, () => {
       for (let v of BAD_VECTORS) throws(() => coder.decode(v));
     });
   }
@@ -184,4 +184,4 @@ genTests('base32crockford', base32crockford, BASE32_CROCKFORD, undefined, false)
 genTests('base64', base64, BASE64_VECTORS, BASE64_BAD);
 genTests('base64url', base64url, BASE64_URL);
 
-should.runWhen(import.meta.url);
+it.runWhen(import.meta.url);
