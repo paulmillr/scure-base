@@ -1,7 +1,4 @@
 // @ts-expect-error package has declarations, but its exports map does not expose them.
-import * as nodeBase58 from '@faustbrian/node-base58';
-import compare from '@paulmillr/jsbt/bench-compare.js';
-import { utils as benchUtils } from '@paulmillr/jsbt/bench.js';
 import {
   fromBase58 as exodusFromBase58,
   toBase58 as exodusToBase58,
@@ -13,12 +10,14 @@ import {
   toBase64url as exodusToBase64url,
 } from '@exodus/bytes/base64.js';
 import { fromHex as exodusFromHex, toHex as exodusToHex } from '@exodus/bytes/hex.js';
+import * as nodeBase58 from '@faustbrian/node-base58';
+import compare from '@paulmillr/jsbt/benchmark-compare.js';
+import { utils as benchUtils } from '@paulmillr/jsbt/benchmark.js';
 import * as stableBase64 from '@stablelib/base64';
 import * as stableHex from '@stablelib/hex';
 // @ts-expect-error package does not ship TypeScript declarations.
 import bs58 from 'bs58';
 import * as microBase58 from 'micro-base58';
-import { __TESTS, base58, base64, base64url, hex, utf8 } from '../../index.ts';
 import {
   base58 as base58_2_2_0,
   base64 as base64_2_2_0,
@@ -26,6 +25,7 @@ import {
   hex as hex_2_2_0,
   utf8 as utf8_2_2_0,
 } from 'scure-base-2-2-0';
+import { __TESTS, base58, base64, base64url, hex, utf8 } from '../../index.ts';
 
 const MAX_RUN_TIME_SEC = Number(process.env.JSBT_RUNTIME ?? 0.25);
 if (!Number.isFinite(MAX_RUN_TIME_SEC) || MAX_RUN_TIME_SEC < 0.1 || MAX_RUN_TIME_SEC > 60)

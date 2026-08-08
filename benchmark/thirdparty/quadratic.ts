@@ -1,8 +1,8 @@
 import * as nodeBase58 from '@faustbrian/node-base58';
 import { should } from '@paulmillr/jsbt/test.js';
-import * as assert from 'node:assert';
 import bs58 from 'bs58';
 import * as microBase58 from 'micro-base58';
+import * as assert from 'node:assert';
 import { RANDOM, stats } from '../../test/utils.ts';
 
 const getTime = () => Number(process.hrtime.bigint());
@@ -78,7 +78,7 @@ async function isLinear(callback, iters = 128) {
   );
 }
 
-should(
+it(
   'detect quadratic functions',
   retry(async () => {
     await isLinear((buf) => linear(buf), 16);
@@ -89,21 +89,21 @@ should(
   })
 );
 
-should(
+it(
   'DoS: bs58 is quadratic',
   retry(async () => {
     await assert.rejects(() => isLinear((buf) => bs58.decode(bs58.encode(buf)), 16));
   })
 );
 
-should(
+it(
   'DoS: microBase58 is quadratic',
   retry(async () => {
     await assert.rejects(() => isLinear((buf) => microBase58.decode(microBase58.encode(buf)), 16));
   })
 );
 
-should(
+it(
   'DoS: nodeBase58 is quadratic',
   retry(async () => {
     await assert.rejects(() => isLinear((buf) => nodeBase58.decode(nodeBase58.encode(buf)), 16));

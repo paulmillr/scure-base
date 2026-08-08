@@ -1,7 +1,4 @@
 // @ts-expect-error package has declarations, but its exports map does not expose them.
-import * as nodeBase58 from '@faustbrian/node-base58';
-import compare from '@paulmillr/jsbt/bench-compare.js';
-import { utils as benchUtils } from '@paulmillr/jsbt/bench.js';
 import {
   fromBase58 as exodusFromBase58,
   toBase58 as exodusToBase58,
@@ -13,6 +10,9 @@ import {
   toBase64url as exodusToBase64url,
 } from '@exodus/bytes/base64.js';
 import { fromHex as exodusFromHex, toHex as exodusToHex } from '@exodus/bytes/hex.js';
+import * as nodeBase58 from '@faustbrian/node-base58';
+import compare from '@paulmillr/jsbt/benchmark-compare.js';
+import { utils as benchUtils } from '@paulmillr/jsbt/benchmark.js';
 import * as stableBase64 from '@stablelib/base64';
 import * as stableHex from '@stablelib/hex';
 // @ts-expect-error package does not ship TypeScript declarations.

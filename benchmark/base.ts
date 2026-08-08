@@ -1,4 +1,4 @@
-import bench from '@paulmillr/jsbt/bench.js';
+import bench from '@paulmillr/jsbt/benchmark.js';
 import type { Bech32, BytesCoder } from '../index.ts';
 import { __TESTS, base16, base32, base58, base64, base64nopad, bech32, bech32m, utf8 } from '../index.ts';
 
