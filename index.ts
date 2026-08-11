@@ -612,6 +612,15 @@ const base64Fallback: BytesCoder = /* @__PURE__ */ freeze(() =>
   )
 );
 
+/** base64url from RFC 4648. Padded. Pure JS version */
+const base64urlFallback: BytesCoder = /* @__PURE__ */ freeze(() =>
+  chain(
+    radix2(6),
+    alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'),
+    padding(6)
+  )
+);
+
 /**
  * base64 from RFC 4648. Padded.
  * Alternative variants: `base64nopad`, `base64url`, `base64urlnopad`.
@@ -660,11 +669,7 @@ export const base64nopad: BytesCoder = /* @__PURE__ */ freeze(() =>
 export const base64url: BytesCoder = /* @__PURE__ */ freeze(() => hasBase64Builtin ? {
   encode(b) { abytes(b); return (b as any).toBase64({ alphabet: 'base64url' }); },
   decode(s) { return decodeBase64Builtin(s, true); },
-} : chain(
-  radix2(6),
-  alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'),
-  padding(6)
-));
+} : base64urlFallback);
 
 /**
  * base64 from RFC 4648, using URL-safe alphabet. No padding.
@@ -681,22 +686,26 @@ export const base64urlnopad: BytesCoder = /* @__PURE__ */ freeze(() =>
   chain(radix2(6), alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'))
 );
 
-// base58 code
-// -----------
-// Base conversion 256 <-> 58 done on 16-bit limbs, five base58 digits (one divmod by
-// 58**5) per pass, ~10x fewer inner-loop iterations than digit-at-a-time conversion.
+// baseN radix code (base58, base36)
+// ---------------------------------
+// Base conversion 256 <-> BASE done on 16-bit limbs, five baseN digits (one divmod by
+// BASE**5) per pass, ~10x fewer inner-loop iterations than digit-at-a-time conversion.
 // Exactness: every intermediate is a non-negative integer below 2**53, so float64
-// arithmetic (including Math.floor of the quotients) is exact:
-// - encode: carry * 2**16 + limb < 58**5 * 2**16 < 2**46
-// - decode: limb * 58**5 + carry < 2**16 * 58**5 + 2**30 < 2**46
+// arithmetic (including Math.floor of the quotients) is exact for any GROUP = BASE**5 < 2**30:
+// - encode: carry * 2**16 + limb < BASE**5 * 2**16 < 2**46
+// - decode: limb * BASE**5 + carry < 2**16 * BASE**5 + 2**30 < 2**46
 // Still O(n^2) overall like any positional-base conversion — see the base58 DoS note.
-const B58_GROUP = 656356768; // 58**5 < 2**30; literal (not `58 ** 5`) so bundlers can drop it as dead code
+// GROUP literals (not `BASE ** 5`) so bundlers can drop unused coders as dead code.
+const B58_GROUP = 656356768; // 58**5 < 2**30
+const B36_GROUP = 60466176; // 36**5 < 2**26
+const RADIX_BASE_N_MAX_LENGTH = 65536;
 
-const radix58: TRet<Coder<Uint8Array, Uint8Array>> = {
+const radixBaseN = (BASE: number, GROUP: number): TRet<Coder<Uint8Array, Uint8Array>> => ({
   encode: (bytes: TArg<Uint8Array>) => {
     abytes(bytes);
     const blen = bytes.length;
     if (blen === 0) return new Uint8Array(0) as TRet<Uint8Array>;
+    if (blen >= RADIX_BASE_N_MAX_LENGTH) throw new Error('invalid length');
     // Leading zero bytes map 1:1 to leading zero digits (at most blen-1 explicit zeros;
     // an all-zero value still contributes one digit below).
     let zeros = 0;
@@ -707,7 +716,7 @@ const radix58: TRet<Coder<Uint8Array, Uint8Array>> = {
     const odd = blen & 1;
     if (odd) limbs[0] = bytes[0]!;
     for (let i = odd, j = odd; i < blen; i += 2, j++) limbs[j] = (bytes[i]! << 8) | bytes[i + 1]!;
-    // Repeated divmod by 58**5; each pass emits one 5-digit group, least significant
+    // Repeated divmod by BASE**5; each pass emits one 5-digit group, least significant
     // first. No carry-overflow guard like convertRadix had: that one faced arbitrary
     // caller-chosen bases, while these bounds are static and proven exact above.
     const groups: number[] = [];
@@ -716,8 +725,8 @@ const radix58: TRet<Coder<Uint8Array, Uint8Array>> = {
       let carry = 0;
       for (let i = pos; i < nlimbs; i++) {
         const cur = carry * 0x10000 + limbs[i]!;
-        const q = Math.floor(cur / B58_GROUP);
-        carry = cur - q * B58_GROUP;
+        const q = Math.floor(cur / GROUP);
+        carry = cur - q * GROUP;
         limbs[i] = q;
         if (q === 0 && i === pos) pos++;
       }
@@ -729,32 +738,32 @@ const radix58: TRet<Coder<Uint8Array, Uint8Array>> = {
     // encode ~25% and base58xmr 2x — measured.)
     const top = groups.length - 1;
     let sig = top * 5;
-    for (let v = groups[top]!; ; v = Math.floor(v / 58)) {
+    for (let v = groups[top]!; ; v = Math.floor(v / BASE)) {
       sig++;
-      if (v < 58) break;
+      if (v < BASE) break;
     }
     const res = new Uint8Array(zeros + sig); // leading zero digits are already 0
     let j = res.length - 1;
     for (let g = 0; g < top; g++) {
       let v = groups[g]!;
       for (let k = 0; k < 5; k++) {
-        res[j--] = v % 58;
-        v = Math.floor(v / 58);
+        res[j--] = v % BASE;
+        v = Math.floor(v / BASE);
       }
     }
-    for (let v = groups[top]!; j >= zeros; v = Math.floor(v / 58)) res[j--] = v % 58;
+    for (let v = groups[top]!; j >= zeros; v = Math.floor(v / BASE)) res[j--] = v % BASE;
     return res as TRet<Uint8Array>;
   },
   decode: (digits: TArg<Uint8Array>) => {
     abytes(digits);
     const dlen = digits.length;
     if (dlen === 0) return new Uint8Array(0) as TRet<Uint8Array>;
-    if (dlen >= 65536) throw new Error('invalid length');
+    if (dlen >= RADIX_BASE_N_MAX_LENGTH) throw new Error('invalid length');
     let zeros = 0;
     while (zeros < dlen - 1 && digits[zeros] === 0) zeros++;
     // Multiply-accumulate 16-bit limbs (little-endian, `used` live) group by group,
     // most significant group first; the first group may be shorter than 5 digits, and
-    // its 58**group factor falls out of the digit fold.
+    // its BASE**group factor falls out of the digit fold.
     const limbs = new Uint16Array(Math.ceil((dlen * 6) / 16) + 1);
     let used = 0;
     let i = 0;
@@ -764,11 +773,11 @@ const radix58: TRet<Coder<Uint8Array, Uint8Array>> = {
       let factor = 1;
       for (const end = i + group; i < end; i++) {
         const d = digits[i]!;
-        // Unreachable through the public chain (alphabet emits digits < 58); guards
+        // Unreachable through the public chain (alphabet emits digits < BASE); guards
         // internal misuse from silently corrupting output.
-        if (d >= 58) throw new Error(`invalid integer: ${d}`);
-        gval = gval * 58 + d;
-        factor *= 58;
+        if (d >= BASE) throw new Error(`invalid integer: ${d}`);
+        gval = gval * BASE + d;
+        factor *= BASE;
       }
       group = 5;
       let carry = gval;
@@ -791,7 +800,24 @@ const radix58: TRet<Coder<Uint8Array, Uint8Array>> = {
     }
     return res as TRet<Uint8Array>;
   },
-};
+});
+
+const radix58: TRet<Coder<Uint8Array, Uint8Array>> = /* @__PURE__ */ radixBaseN(58, B58_GROUP);
+
+/**
+ * base36: lowercase alphanumeric, big-endian positional (multibase `k` payload,
+ * used by e.g. IPNS/CID addresses). Leading zero bytes map to leading `0` digits.
+ * Quadratic (O(n^2)) - so, can't be used on large inputs.
+ * @example
+ * ```js
+ * const text = base36.encode(Uint8Array.from([0, 1, 2]));
+ * base36.decode(text);
+ * // => Uint8Array.from([0, 1, 2])
+ * ```
+ */
+export const base36: BytesCoder = /* @__PURE__ */ freeze(() =>
+  chain(radixBaseN(36, B36_GROUP), alphabet('0123456789abcdefghijklmnopqrstuvwxyz'))
+);
 
 const genBase58 = (abc: string) => chain(radix58, alphabet(abc));
 
@@ -1378,10 +1404,29 @@ export const utf8: BytesCoder = /* @__PURE__ */ freeze(() => {
     decode: typeof TextEncoder === 'function' ? utf8Builtin.decode : utf8Fallback.decode,
   };
 });
+
+/** Lowercase hex with case-insensitive decoding. Pure JS version. */
+const hexFallback: BytesCoder = /* @__PURE__ */ freeze(() =>
+  chain(
+    radix2(4),
+    // Case-insensitive decode via table aliases instead of a toLowerCase pass.
+    alphabet('0123456789abcdef', { A: 'a', B: 'b', C: 'c', D: 'd', E: 'e', F: 'f' }),
+    normalize((s: string) => {
+      // astr first: same non-string message as the native path, and no `s.length`
+      // access on null / undefined while building the error.
+      astr('hex', s);
+      if (s.length % 2 !== 0) throw new TypeError(`hex.decode: odd-length string (${s.length})`);
+      return s;
+    })
+  )
+);
+
 // Keep internal parity probes behind a test-only export.
 export const __TESTS: {
   alphabet: typeof alphabet;
   base64Fallback: BytesCoder;
+  base64urlFallback: BytesCoder;
+  hexFallback: BytesCoder;
   radix2: typeof radix2;
   radix58: typeof radix58;
   checksum: typeof checksum;
@@ -1390,6 +1435,8 @@ export const __TESTS: {
 } = /* @__PURE__ */ freeze(() => ({
   alphabet: alphabet,
   base64Fallback: base64Fallback,
+  base64urlFallback: base64urlFallback,
+  hexFallback: hexFallback,
   radix2: radix2,
   radix58: radix58,
   checksum: checksum,
@@ -1421,19 +1468,5 @@ const hexBuiltin: BytesCoder = {
  * ```
  */
 export const hex: BytesCoder = /* @__PURE__ */ freeze(() =>
-  hasHexBuiltin
-    ? hexBuiltin
-    : chain(
-        radix2(4),
-        // Case-insensitive decode via table aliases instead of a toLowerCase pass.
-        alphabet('0123456789abcdef', { A: 'a', B: 'b', C: 'c', D: 'd', E: 'e', F: 'f' }),
-        normalize((s: string) => {
-          // astr first: same non-string message as the native path, and no `s.length`
-          // access on null / undefined while building the error.
-          astr('hex', s);
-          if (s.length % 2 !== 0)
-            throw new TypeError(`hex.decode: odd-length string (${s.length})`);
-          return s;
-        })
-      )
+  hasHexBuiltin ? hexBuiltin : hexFallback
 );

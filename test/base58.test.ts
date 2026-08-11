@@ -50,6 +50,10 @@ it('base58: vectors2', () => {
   }
 });
 
+it('base58: encode length limit', () => {
+  throws(() => base58.encode(new Uint8Array(65536)), /invalid length/);
+});
+
 describe('base58: xmr vectors', () => {
   for (let i = 0; i < XMR_VECTORS.validAddrs.length; i++) {
     it(`${i}`, () => {

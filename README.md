@@ -61,6 +61,7 @@ described below.
 | `base64url`, `base64urlnopad`    | RFC 4648 §5                                                                | `=` / no | URL-safe alphabet; native builtin when available                               |
 | `base58`, `base58flickr`, `base58xrp` | [draft-msporny](https://www.ietf.org/archive/id/draft-msporny-base58-03.txt) | —   | O(n²), only for small constant-size inputs — see [below](#base58-is-on2-and-radixes) |
 | `base58xmr`                      | Monero                                                                     | —        | Processes 8-byte blocks, which makes it linear                                 |
+| `base36`                         | [multibase](https://github.com/multiformats/multibase) `k` (IPNS, CIDv1)   | —        | Lowercase alphanumeric; O(n²), same constraints as `base58`                    |
 | `createBase58check(sha256)`      | [Base58check](https://en.bitcoin.it/wiki/Base58Check_encoding)             | —        | Returns a codec; caller injects sha256                                         |
 | `bech32`, `bech32m`              | BIP173, BIP350                                                             | —        | Words-based API with `(prefix, words)`                                         |
 | `utf8`, `ascii`                  | —                                                                          | —        | String ↔ bytes coders, strict validation                                       |
@@ -69,6 +70,7 @@ described below.
 import { base16, base32, base64, base58 } from '@scure/base';
 // Flavors
 import {
+  base36,
   base58flickr,
   base58xmr,
   base58xrp,
@@ -272,6 +274,7 @@ However, generic conversion between bases has [quadratic O(n^2) time complexity]
 
 Which means base58 has quadratic time complexity too. Use base58 only when you have small
 constant sized input, because variable length sized input from user can cause DoS.
+The same applies to `base36`, which shares the implementation.
 
 On the other hand, if both bases are power of same number (like `2**8 <-> 2**64`),
 there is linear algorithm. For now we have implementation for power-of-two bases only (radix2).
