@@ -12,7 +12,7 @@ import {
 import { fromHex as exodusFromHex, toHex as exodusToHex } from '@exodus/bytes/hex.js';
 import * as nodeBase58 from '@faustbrian/node-base58';
 import compare from '@paulmillr/jsbt/benchmark-compare.js';
-import { utils as benchUtils } from '@paulmillr/jsbt/benchmark.js';
+import { setMaxRunTime } from '@paulmillr/jsbt/benchmark.js';
 import * as stableBase64 from '@stablelib/base64';
 import * as stableHex from '@stablelib/hex';
 // @ts-expect-error package does not ship TypeScript declarations.
@@ -23,7 +23,7 @@ import { __TESTS, base58, base64, base64url, hex, utf8 } from '../../index.ts';
 const MAX_RUN_TIME_SEC = Number(process.env.JSBT_RUNTIME ?? 0.25);
 if (!Number.isFinite(MAX_RUN_TIME_SEC) || MAX_RUN_TIME_SEC < 0.1 || MAX_RUN_TIME_SEC > 60)
   throw new Error('JSBT_RUNTIME must be a number between 0.1 and 60 seconds');
-benchUtils.setMaxRunTime(MAX_RUN_TIME_SEC);
+setMaxRunTime(MAX_RUN_TIME_SEC);
 
 type BaseFixture = {
   bytes: Uint8Array;
@@ -122,7 +122,6 @@ assertSame('Base58 scure', base58.decode(baseFixtures['1 KB'].Base58), baseFixtu
 
 await compare(
   'thirdparty utf8',
-  { size: utf8Fixtures },
   {
     encode: {
       scure: (fixture: Utf8Fixture) => utf8.encode(fixture.bytes),
@@ -134,14 +133,14 @@ await compare(
     },
   },
   {
-    libraryDimensions: ['op', 'library'],
+    inputs: { size: utf8Fixtures },
+    levels: ['op', 'library'],
     bytes: ({ args }) => args[0].bytes.length,
   }
 );
 
 await compare(
   'thirdparty base',
-  { size: baseFixtures },
   {
     Hex: {
       encode: {
@@ -194,7 +193,8 @@ await compare(
     },
   },
   {
-    libraryDimensions: ['codec', 'op', 'library'],
+    inputs: { size: baseFixtures },
+    levels: ['codec', 'op', 'library'],
     bytes: ({ args }) => args[0].bytes.length,
   }
 );
