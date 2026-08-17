@@ -582,11 +582,31 @@ export const base32crockford: BytesCoder = /* @__PURE__ */ freeze(() =>
 );
 
 // Built-in base64 conversion https://caniuse.com/mdn-javascript_builtins_uint8array_frombase64
+// JSC/WebKit ship the builtin but accept malformed base64 the spec requires
+// rejecting (#42), so probe it before trusting it. One input per malformed
+// category the bug spans: 'a' is a single-character chunk (invalid group
+// length, rejected in every mode); 'aQ=' is a tail only `lastChunkHandling:
+// 'strict'` rejects (confirms the engine honors that option, which
+// decodeBase64Builtin relies on); 'aa==' carries non-zero trailing pad bits
+// (fails the canonical-form check). A conformant builtin (V8, SpiderMonkey,
+// Node) throws on all three; a lax one returns, and we fall back to the JS path
+// so decoding stays spec-correct on every engine.
+const isConformantFromBase64 = (fromBase64: TArg<(s: string, opts: any) => Uint8Array>): boolean => {
+  for (const invalid of ['a', 'aQ=', 'aa==']) {
+    try {
+      fromBase64(invalid, { lastChunkHandling: 'strict' });
+      return false;
+    } catch (_e) { /* expected: conformant engines throw */ }
+  }
+  return true;
+};
+
 // Require both directions before taking the native fast path, so base64/base64url don't mix native and JS behavior.
 // prettier-ignore
 const hasBase64Builtin: boolean = /* @__PURE__ */ (() =>
   typeof (Uint8Array as any).from([]).toBase64 === 'function' &&
-  typeof (Uint8Array as any).fromBase64 === 'function')();
+  typeof (Uint8Array as any).fromBase64 === 'function' &&
+  isConformantFromBase64((s, opts) => (Uint8Array as any).fromBase64(s, opts)))();
 
 // Native `Uint8Array.fromBase64()` accepts these ASCII whitespace chars.
 // Reject them first so the native base64 path still follows RFC 4648 §3.3.
@@ -1432,6 +1452,7 @@ export const __TESTS: {
   checksum: typeof checksum;
   utf8Fallback: BytesCoder;
   _isWellFormedShim: (str: string) => boolean;
+  isConformantFromBase64: (fromBase64: TArg<(s: string, opts: any) => Uint8Array>) => boolean;
 } = /* @__PURE__ */ freeze(() => ({
   alphabet: alphabet,
   base64Fallback: base64Fallback,
@@ -1442,6 +1463,7 @@ export const __TESTS: {
   checksum: checksum,
   utf8Fallback: utf8Fallback,
   _isWellFormedShim: _isWellFormedShim,
+  isConformantFromBase64: isConformantFromBase64,
 }));
 
 // Built-in hex conversion https://caniuse.com/mdn-javascript_builtins_uint8array_fromhex
