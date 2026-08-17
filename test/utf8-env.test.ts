@@ -58,6 +58,35 @@ it('utf8 env: decode falls back when TextEncoder is missing', async () => {
   });
 });
 
+it('utf8 env: well-formed check survives String.prototype.isWellFormed removal after load', async () => {
+  // Import while isWellFormed exists (so any module-load probe resolves to the
+  // native branch), then remove it to emulate a bundle minified against V8 but
+  // run on Hermes, where isWellFormed is absent. A per-call probe still decodes;
+  // a probe resolved once at load would now call a missing method and throw.
+  const mod = await import(`../index.js?utf8-iswf=${Date.now() + 5}`);
+  const desc = Object.getOwnPropertyDescriptor(String.prototype, 'isWellFormed');
+  Object.defineProperty(String.prototype, 'isWellFormed', {
+    value: undefined,
+    writable: true,
+    configurable: true,
+  });
+  try {
+    // A well-formed string still decodes...
+    eql(mod.utf8.decode('a'), Uint8Array.of(0x61));
+    // ...and a lone surrogate (malformed UTF-16) is still rejected via the shim.
+    let threw = false;
+    try {
+      mod.utf8.decode('\uD800');
+    } catch {
+      threw = true;
+    }
+    eql(threw, true);
+  } finally {
+    if (desc) Object.defineProperty(String.prototype, 'isWellFormed', desc);
+    else delete (String.prototype as any).isWellFormed;
+  }
+});
+
 it('base env: rfc4648 string building falls back without TextDecoder', async () => {
   await withUtf8Globals({ TextEncoder: undefined, TextDecoder: undefined }, async () => {
     const mod = await import(`../index.js?base-env=${Date.now() + 4}`);
