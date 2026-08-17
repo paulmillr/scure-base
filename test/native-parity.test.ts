@@ -1,6 +1,6 @@
 import { it } from '@paulmillr/jsbt/test.js';
 import fc from 'fast-check';
-import { deepStrictEqual as eql } from 'node:assert';
+import { deepStrictEqual as eql, throws } from 'node:assert';
 import { __TESTS, base64, base64url, hex, type BytesCoder } from '../index.ts';
 
 type Outcome = { ok: true; value: Uint8Array } | { ok: false };
@@ -81,5 +81,26 @@ differential(
   hasBase64Builtin
 );
 differential('hex', hex, __TESTS.hexFallback, stringInput(hexChar), hasHexBuiltin);
+
+// #42: JSC/WebKit's native fromBase64 accepts these malformed inputs (bad
+// padding, invalid group lengths, non-zero pad bits) that the spec requires
+// rejecting. On such engines the correctness probe in hasBase64Builtin routes
+// decoding through this JS fallback, so the fallback must reject every one of
+// them - which it does on all engines, matching Node/V8/SpiderMonkey's native.
+const BASE64_INVALID_JSC = ['====', 'aQ=', 'aQ===', 'aaaa====', 'a', 'a===', 'a==', 'aaaaa', 'aa=='];
+it('base64 fallback rejects malformed inputs the JSC builtin accepts (#42)', () => {
+  for (const s of BASE64_INVALID_JSC) throws(() => __TESTS.base64Fallback.decode(s));
+});
+
+// The routing predicate is the half of the fix CI can't reach through the real
+// builtin (JSC isn't run here), so exercise both branches with fake builtins.
+it('isConformantFromBase64 detects a lax builtin (#42)', () => {
+  const laxAcceptsEverything = (_s: string) => new Uint8Array();
+  const strictThrows = (_s: string) => {
+    throw new SyntaxError('invalid base64');
+  };
+  eql(__TESTS.isConformantFromBase64(laxAcceptsEverything), false); // JSC stand-in
+  eql(__TESTS.isConformantFromBase64(strictThrows), true); // conformant stand-in
+});
 
 it.runWhen(import.meta.url);
