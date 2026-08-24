@@ -2,7 +2,7 @@ import { sha256 } from '@noble/hashes/sha2.js';
 import { describe, it } from '@paulmillr/jsbt/test.js';
 import { deepStrictEqual as eql, throws } from 'node:assert';
 import { Buffer } from 'node:buffer';
-import { base58, base58xmr, base58xrp, createBase58check } from '../index.ts';
+import { base58, base58flickr, base58xmr, base58xrp, createBase58check } from '../index.ts';
 import { json } from './utils.ts';
 
 const VECTORS_2 = json('./vectors/base58.json');
@@ -50,8 +50,15 @@ it('base58: vectors2', () => {
   }
 });
 
-it('base58: encode length limit', () => {
-  throws(() => base58.encode(new Uint8Array(65536)), /invalid length/);
+it('base58: public length limits', () => {
+  const bytes = new Uint8Array(2048).fill(0xff);
+  for (const coder of [base58, base58flickr, base58xrp]) {
+    const encoded = coder.encode(bytes);
+    eql(coder.decode(encoded), bytes);
+    throws(() => coder.encode(new Uint8Array(2049)), /invalid length/);
+    // Length must be rejected before the invalid character reaches alphabet decoding.
+    throws(() => coder.decode('0'.repeat(4097)), /invalid length/);
+  }
 });
 
 describe('base58: xmr vectors', () => {

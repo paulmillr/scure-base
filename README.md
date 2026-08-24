@@ -138,9 +138,9 @@ const addr2 = bech32.encodeFromBytes('test', new TextEncoder().encode('hello'));
 const { bytes } = bech32.decodeToBytes(addr2);
 ```
 
-Per BIP173, encoded strings are limited to 90 characters. `encode` and `decode`
-accept an optional `limit` argument to raise the limit (Lightning invoices are
-longer), or `false` to disable it entirely.
+Per BIP173, encoded strings are limited to 90 characters. `encode`, `decode`,
+and `decodeToBytes` accept an optional `limit` argument to raise the limit
+(Lightning invoices are longer), or `false` to disable it entirely.
 
 We provide low-level bech32 operations.
 If you need high-level methods for BTC (addresses, and others), use
@@ -275,6 +275,7 @@ However, generic conversion between bases has [quadratic O(n^2) time complexity]
 Which means base58 has quadratic time complexity too. Use base58 only when you have small
 constant sized input, because variable length sized input from user can cause DoS.
 The same applies to `base36`, which shares the implementation.
+Both reject inputs over 2,048 bytes and encoded strings over 4,096 characters before conversion.
 
 On the other hand, if both bases are power of same number (like `2**8 <-> 2**64`),
 there is linear algorithm. For now we have implementation for power-of-two bases only (radix2).

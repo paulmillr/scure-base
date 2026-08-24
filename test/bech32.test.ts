@@ -233,6 +233,27 @@ const INVALID_WORDS = [
   ],
 ];
 
+const BECH32_UNICODE_CASE_FOLDING = [
+  {
+    name: 'bech32',
+    codec: bech32,
+    vectors: [
+      ['HRP', 'K18DUSE0', 0],
+      ['payload', 'BC1KVV242C', 3],
+      ['checksum', 'BC1QR7WTXPK', 10],
+    ],
+  },
+  {
+    name: 'bech32m',
+    codec: bech32m,
+    vectors: [
+      ['HRP', 'K1J3VUUD', 0],
+      ['payload', 'BC1KES6E06', 3],
+      ['checksum', 'BC1QZKY0LEX', 5],
+    ],
+  },
+] as const;
+
 const VALID_WORDS = [
   {
     hex: '00443214c74254b635cf84653a56d7c675be77df',
@@ -354,6 +375,20 @@ for (let v of BECH32M_INVALID_ENCODE) {
   });
 }
 
+for (const { name, codec, vectors } of BECH32_UNICODE_CASE_FOLDING) {
+  for (const [position, canonical, index] of vectors) {
+    it(`${name} rejects Unicode case folding in ${position}`, () => {
+      codec.decode(canonical);
+      const spoof = `${canonical.slice(0, index)}K${canonical.slice(index + 1)}`;
+      eql(codec.decodeUnsafe(spoof), undefined);
+      throws(() => codec.decode(spoof), /printable ASCII expected/);
+    });
+  }
+  it(`${name} rejects Unicode case folding in encode prefix`, () => {
+    throws(() => codec.encode('K', []), /printable ASCII expected/);
+  });
+}
+
 for (let v of VALID_WORDS) {
   it(`fromWords/toWords ${v.hex}`, () => {
     const words = bech32.toWords(Buffer.from(v.hex, 'hex'));
@@ -382,5 +417,18 @@ it('encode accepts Uint8Array', () => {
   const bytes = new Uint8Array([0, 0, 8, 18, 4, 12, 31, 31]);
   eql(bech32.encode('test', bytes), 'test1qqgjyvlld2nz37');
 });
+
+for (const [name, codec] of [
+  ['bech32', bech32],
+  ['bech32m', bech32m],
+] as const) {
+  it(`${name} decodeToBytes uses a safe default limit with explicit overrides`, () => {
+    const bytes = Uint8Array.from({ length: 64 }, (_, i) => i);
+    const encoded = codec.encode('bc', codec.toWords(bytes), false);
+    throws(() => codec.decodeToBytes(encoded), /invalid string length/);
+    eql(codec.decodeToBytes(encoded, encoded.length).bytes, bytes);
+    eql(codec.decodeToBytes(encoded, false).bytes, bytes);
+  });
+}
 
 it.runWhen(import.meta.url);

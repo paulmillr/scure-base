@@ -559,6 +559,7 @@ export const base32hex: BytesCoder = /* @__PURE__ */ freeze(() =>
 export const base32hexnopad: BytesCoder = /* @__PURE__ */ freeze(() =>
   chain(radix2(5), alphabet('0123456789ABCDEFGHIJKLMNOPQRSTUV'))
 );
+const BASE32_CROCKFORD_ASCII = /^[\x00-\x7f]*$/;
 /**
  * base32 encoding from RFC 4648. Doug Crockford's version.
  * See {@link https://www.crockford.com/base32.html | Douglas Crockford's Base32}.
@@ -576,7 +577,10 @@ export const base32crockford: BytesCoder = /* @__PURE__ */ freeze(() =>
     alphabet('0123456789ABCDEFGHJKMNPQRSTVWXYZ'),
     normalize((s: string) => {
       astr('base32crockford.decode', s);
-      return s.toUpperCase().replace(/O/g, '0').replace(/[IL]/g, '1');
+      const upper = s.toUpperCase();
+      if (s !== upper && !BASE32_CROCKFORD_ASCII.test(s))
+        throw new Error('base32crockford.decode: ASCII expected');
+      return upper.replace(/O/g, '0').replace(/[IL]/g, '1');
     })
   )
 );
@@ -699,6 +703,8 @@ export const base64urlnopad: BytesCoder = /* @__PURE__ */ freeze(() =>
 const B58_GROUP = 656356768; // 58**5 < 2**30
 const B36_GROUP = 60466176; // 36**5 < 2**26
 const RADIX_BASE_N_MAX_LENGTH = 65536;
+const BASE_N_MAX_BYTES = 2048;
+const BASE_N_MAX_CHARS = 4096;
 
 const radixBaseN = (BASE: number, GROUP: number): TRet<Coder<Uint8Array, Uint8Array>> => ({
   encode: (bytes: TArg<Uint8Array>) => {
@@ -802,6 +808,22 @@ const radixBaseN = (BASE: number, GROUP: number): TRet<Coder<Uint8Array, Uint8Ar
   },
 });
 
+const genBaseN = (radix: TRet<Coder<Uint8Array, Uint8Array>>, abc: string): TRet<BytesCoder> => {
+  const letters = alphabet(abc);
+  return {
+    encode(bytes: TArg<Uint8Array>): string {
+      abytes(bytes);
+      if (bytes.length > BASE_N_MAX_BYTES) throw new Error('invalid length');
+      return letters.encode(radix.encode(bytes));
+    },
+    decode(str: string): TRet<Uint8Array> {
+      astr('baseN.decode', str);
+      if (str.length > BASE_N_MAX_CHARS) throw new Error('invalid length');
+      return radix.decode(letters.decode(str)) as TRet<Uint8Array>;
+    },
+  } as TRet<BytesCoder>;
+};
+
 const radix58: TRet<Coder<Uint8Array, Uint8Array>> = /* @__PURE__ */ radixBaseN(58, B58_GROUP);
 
 /**
@@ -816,10 +838,10 @@ const radix58: TRet<Coder<Uint8Array, Uint8Array>> = /* @__PURE__ */ radixBaseN(
  * ```
  */
 export const base36: BytesCoder = /* @__PURE__ */ freeze(() =>
-  chain(radixBaseN(36, B36_GROUP), alphabet('0123456789abcdefghijklmnopqrstuvwxyz'))
+  genBaseN(radixBaseN(36, B36_GROUP), '0123456789abcdefghijklmnopqrstuvwxyz')
 );
 
-const genBase58 = (abc: string) => chain(radix58, alphabet(abc));
+const genBase58 = (abc: string) => genBaseN(radix58, abc);
 
 /**
  * base58: base64 without ambigous characters +, /, 0, O, I, l.
@@ -980,6 +1002,14 @@ export interface Bech32DecodedWithArray<Prefix extends string = string> {
 const BECH_ALPHABET: Coder<Uint8Array, string> = /* @__PURE__ */ alphabet(
   'qpzry9x8gf2tvdw0s3jn54khce6mua7l'
 );
+const BECH_UPPERCASE_PRINTABLE = /^[\x21-\x60\x7b-\x7e]+$/;
+
+function assertBech32Printable(label: string, value: string): void {
+  for (let i = 0; i < value.length; i++) {
+    const c = value.charCodeAt(i);
+    if (c < 33 || c > 126) throw new Error(`${label}: printable ASCII expected`);
+  }
+}
 
 // Range-checks while packing: a plain copy would silently wrap out-of-range words
 // (256 -> 0 would encode to a valid letter). Same message the old slow alphabet threw.
@@ -1060,9 +1090,10 @@ export interface Bech32 {
   /**
    * Decodes a bech32 string and converts the payload back into bytes.
    * @param str - Encoded bech32 string.
+   * @param limit - Maximum accepted input length, or `false` to disable the limit.
    * @returns Decoded prefix, words, and bytes.
    */
-  decodeToBytes(str: string): Bech32DecodedWithArray;
+  decodeToBytes(str: string, limit?: number | false): Bech32DecodedWithArray;
   /**
    * Decodes a bech32 string, returning `undefined` instead of throwing on invalid input.
    * @param str - Encoded bech32 string.
@@ -1145,6 +1176,7 @@ function genBech32(encoding: 'bech32' | 'bech32m'): TRet<Bech32> {
     const actualLength = plen + 7 + words.length;
     if (limit !== false && actualLength > limit)
       throw new TypeError(`Length ${actualLength} exceeds limit ${limit}`);
+    assertBech32Printable('bech32.encode prefix', prefix);
     const lowered = prefix.toLowerCase();
     const sum = bechChecksum(lowered, words, ENCODING_CONST);
     return `${lowered}1${BECH_ALPHABET.encode(wordsToU8(words))}${sum}` as `${Lowercase<Prefix>}1${string}`;
@@ -1164,8 +1196,14 @@ function genBech32(encoding: 'bech32' | 'bech32m'): TRet<Bech32> {
       throw new TypeError(`invalid string length ${slen}, expected (8..${limit})`);
     // don't allow mixed case
     const lowered = str.toLowerCase();
-    if (str !== lowered && str !== str.toUpperCase())
-      throw new Error(`mixed-case string not allowed`);
+    if (str !== lowered) {
+      // Case folding is the only way a non-ASCII input can become valid: unchanged
+      // characters are rejected by the prefix and alphabet checks below.
+      if (!BECH_UPPERCASE_PRINTABLE.test(str)) {
+        assertBech32Printable('bech32.decode input', str);
+        throw new Error(`mixed-case string not allowed`);
+      }
+    }
     const sepIndex = lowered.lastIndexOf('1');
     if (sepIndex === 0 || sepIndex === -1) throw new Error(`invalid separator "1"`);
     const prefix = lowered.slice(0, sepIndex);
@@ -1180,9 +1218,8 @@ function genBech32(encoding: 'bech32' | 'bech32m'): TRet<Bech32> {
 
   const decodeUnsafe = unsafeWrapper(decode);
 
-  function decodeToBytes(str: string): TRet<Bech32DecodedWithArray> {
-    // Keep the byte helper unbounded; callers that need the default BIP 173 length cap should use decode(str).
-    const { prefix, words } = decode(str, false);
+  function decodeToBytes(str: string, limit: number | false = 90): TRet<Bech32DecodedWithArray> {
+    const { prefix, words } = decode(str, limit);
     return {
       prefix,
       words,

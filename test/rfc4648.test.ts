@@ -184,4 +184,9 @@ genTests('base32crockford', base32crockford, BASE32_CROCKFORD, undefined, false)
 genTests('base64', base64, BASE64_VECTORS, BASE64_BAD);
 genTests('base64url', base64url, BASE64_URL);
 
+it('base32crockford rejects Unicode case-folding aliases', () => {
+  throws(() => base32crockford.decode('ſ0'), /ASCII expected/);
+  throws(() => base32crockford.decode('ı0'), /ASCII expected/);
+});
+
 it.runWhen(import.meta.url);

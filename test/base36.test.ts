@@ -67,7 +67,15 @@ it('base36: invalid input', () => {
   throws(() => base36.decode('a-b'));
   throws(() => base36.decode(1));
   throws(() => base36.encode('str'));
-  throws(() => base36.encode(new Uint8Array(65536)), /invalid length/);
+});
+
+it('base36: public length limits', () => {
+  const bytes = new Uint8Array(2048).fill(0xff);
+  const encoded = base36.encode(bytes);
+  eql(base36.decode(encoded), bytes);
+  throws(() => base36.encode(new Uint8Array(2049)), /invalid length/);
+  // Length must be rejected before the invalid character reaches alphabet decoding.
+  throws(() => base36.decode('*'.repeat(4097)), /invalid length/);
 });
 
 it.runWhen(import.meta.url);
