@@ -44,7 +44,7 @@ const BECH32_BYTES = BYTES.subarray(0, 32);
 async function benchCoder(name: string, coder: BytesCoder, data: Uint8Array): Promise<void> {
   const encoded = coder.encode(data);
   assertSame(`${name} roundtrip`, coder.decode(encoded), data);
-  await bench(`${name} encode`, () => coder.encode(data), benchOpts(data.length));
+  //await bench(`${name} encode`, () => coder.encode(data), benchOpts(data.length));
   await bench(`${name} decode`, () => coder.decode(encoded), benchOpts(data.length));
 }
 async function benchBech32(name: string, codec: Bech32): Promise<void> {
@@ -73,9 +73,9 @@ async function main(): Promise<void> {
       const bytes = sampleBytes(size);
       const encoded = coder.encode(bytes);
       assertSame(`${coderName} ${sizeName} roundtrip`, coder.decode(encoded), bytes);
-      await bench(`${coderName} encode ${sizeName}`, () => coder.encode(bytes), {
-        bytes: size,
-      });
+      //await bench(`${coderName} encode ${sizeName}`, () => coder.encode(bytes), {
+      //  bytes: size,
+      //});
       await bench(`${coderName} decode ${sizeName}`, () => coder.decode(encoded), {
         bytes: size,
       });
