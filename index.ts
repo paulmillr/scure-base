@@ -296,7 +296,7 @@ function radix2(bits: number): TRet<Coder<Uint8Array, Uint8Array>> {
       let carry = 0;
       let pos = 0;
       let j = 0;
-      for (let i = 0; i < len; ) {
+      for (let i = 0; i < len;) {
         // At most 7 residual bits plus 24 new bits fit in the signed 32-bit carry.
         if (i + 2 < len) {
           carry = (carry << 24) | (bytes[i]! << 16) | (bytes[i + 1]! << 8) | bytes[i + 2]!;
@@ -1328,7 +1328,7 @@ const utf8Fallback: BytesCoder = /* @__PURE__ */ freeze(() => ({
   encode(data: TArg<Uint8Array>) {
     abytes(data);
     let res = '';
-    for (let i = 0; i < data.length; ) {
+    for (let i = 0; i < data.length;) {
       const a = data[i++]!;
       if (a < 0b1000_0000) {
         res += String.fromCharCode(a);
