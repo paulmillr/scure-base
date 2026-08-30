@@ -1,5 +1,5 @@
+import * as random from '@paulmillr/jsbt/random.js';
 import { describe, it } from '@paulmillr/jsbt/test.js';
-import fc from 'fast-check';
 import { deepStrictEqual, throws } from 'node:assert';
 import { __TESTS, hex } from '../index.ts';
 import { alphabetSlow, convertRadix, convertRadix2, join, paddingSlow } from './slow.ts';
@@ -7,10 +7,10 @@ import { getTypeTests } from './utils.ts';
 
 function hexa() {
   const items = '0123456789abcdef';
-  return fc.integer({ min: 0, max: 15 }).map((n) => items[n]);
+  return random.integer({ min: 0, max: 15 }).map((n) => items[n]);
 }
 function hexaString(constraints = {}) {
-  return fc.string({ ...constraints, unit: hexa() });
+  return random.string({ ...constraints, unit: hexa() });
 }
 
 // const concatBytes = utils.concatBytes;
@@ -40,8 +40,8 @@ describe('utils', () => {
     }
   });
   it('hexToBytes <=> bytesToHex roundtrip', () =>
-    fc.assert(
-      fc.property(hexaString({ minLength: 2, maxLength: 64 }), (hex) => {
+    random.assert(
+      random.property(hexaString({ minLength: 2, maxLength: 64 }), (hex) => {
         if (hex.length % 2 !== 0) return;
         deepStrictEqual(hex, bytesToHex(hexToBytes(hex)));
         deepStrictEqual(hex, bytesToHex(hexToBytes(hex.toUpperCase())));

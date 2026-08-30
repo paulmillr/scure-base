@@ -1,5 +1,5 @@
+import * as random from '@paulmillr/jsbt/random.js';
 import { it } from '@paulmillr/jsbt/test.js';
-import fc from 'fast-check';
 import { deepStrictEqual as eql } from 'node:assert';
 import { __TESTS, base64, base64url, hex, type BytesCoder } from '../index.ts';
 
@@ -20,23 +20,23 @@ const hasHexBuiltin =
   typeof (Uint8Array as any).from([]).toHex === 'function' &&
   typeof (Uint8Array as any).fromHex === 'function';
 
-const ascii = fc.integer({ min: 0, max: 0x7f }).map((code) => String.fromCharCode(code));
-const base64Char = fc.constantFrom(
+const ascii = random.integer({ min: 0, max: 0x7f }).map((code) => String.fromCharCode(code));
+const base64Char = random.constantFrom(
   ...'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=_- \t\n\r'
 );
-const hexChar = fc.constantFrom(...'0123456789abcdefABCDEFxyz+- ');
-const stringInput = (targeted: fc.Arbitrary<string>) =>
-  fc.oneof(
-    fc.string({ unit: targeted, maxLength: 128 }),
-    fc.string({ unit: ascii, maxLength: 128 })
+const hexChar = random.constantFrom(...'0123456789abcdefABCDEFxyz+- ');
+const stringInput = (targeted: random.Arbitrary<string>) =>
+  random.oneof(
+    random.string({ unit: targeted, maxLength: 128 }),
+    random.string({ unit: ascii, maxLength: 128 })
   );
 
 const NUM_RUNS = 262_144;
 
-function assertRandom<Ts>(property: fc.IProperty<Ts>) {
+function assertRandom<Ts extends unknown[]>(property: random.Property<Ts>) {
   const seed = (Math.random() * 0x1_0000_0000) | 0;
   try {
-    fc.assert(property, { numRuns: NUM_RUNS, seed });
+    random.assert(property, { numRuns: NUM_RUNS, seed });
   } catch (error) {
     const prefix = `Differential test failed (seed=${seed}, numRuns=${NUM_RUNS})`;
     if (error instanceof Error) {
@@ -51,18 +51,18 @@ function differential(
   name: string,
   selected: BytesCoder,
   fallback: BytesCoder,
-  input: fc.Arbitrary<string>,
+  input: random.Arbitrary<string>,
   enabled: boolean
 ) {
   it(`native parity: ${name}`, () => {
     if (!enabled) return;
     assertRandom(
-      fc.property(fc.uint8Array({ maxLength: 256 }), (bytes) => {
+      random.property(random.uint8Array({ maxLength: 256 }), (bytes) => {
         eql(selected.encode(bytes), fallback.encode(bytes));
       })
     );
     assertRandom(
-      fc.property(input, (str) => {
+      random.property(input, (str) => {
         eql(
           outcome(() => selected.decode(str)),
           outcome(() => fallback.decode(str))

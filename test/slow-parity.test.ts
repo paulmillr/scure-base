@@ -1,5 +1,5 @@
+import * as random from '@paulmillr/jsbt/random.js';
 import { it } from '@paulmillr/jsbt/test.js';
-import fc from 'fast-check';
 import { deepStrictEqual as eql, throws } from 'node:assert';
 import {
   base16,
@@ -53,8 +53,8 @@ it('slow parity: base58 encode', () => {
   for (const name of Object.keys(B58_ABC) as (keyof typeof B58_ABC)[]) {
     const fast = B58_FAST[name];
     const slow = genBase58Slow(B58_ABC[name]);
-    fc.assert(
-      fc.property(fc.uint8Array({ maxLength: 128 }), (data) => {
+    random.assert(
+      random.property(random.uint8Array({ maxLength: 128 }), (data) => {
         eql(fast.encode(data), slow.encode(data), `${name}.encode`);
       }),
       FC_OPTS
@@ -73,11 +73,11 @@ it('slow parity: base58 decode', () => {
     const abc = B58_ABC[name];
     const slow = genBase58Slow(abc);
     // Valid strings, plus mutations that inject arbitrary chars (often outside the alphabet)
-    fc.assert(
-      fc.property(
-        fc.uint8Array({ maxLength: 64 }),
-        fc.nat(70),
-        fc.integer({ min: 0, max: 0x7e }),
+    random.assert(
+      random.property(
+        random.uint8Array({ maxLength: 64 }),
+        random.integer({ min: 0, max: 70 }),
+        random.integer({ min: 0, max: 0x7e }),
         (data, pos, code) => {
           const valid = slow.encode(data);
           eql(fast.decode(valid), slow.decode(valid), `${name}.decode valid`);
@@ -146,11 +146,11 @@ it('slow parity: rfc4648 chains', () => {
     const slow = pad
       ? chain(radix2Slow(bits), alphabetSlow(abc), paddingSlow(bits), join(''))
       : chain(radix2Slow(bits), alphabetSlow(abc), join(''));
-    fc.assert(
-      fc.property(
-        fc.uint8Array({ maxLength: 256 }),
-        fc.nat(300),
-        fc.integer({ min: 0x20, max: 0x7e }),
+    random.assert(
+      random.property(
+        random.uint8Array({ maxLength: 256 }),
+        random.integer({ min: 0, max: 300 }),
+        random.integer({ min: 0x20, max: 0x7e }),
         (data, pos, code) => {
           const enc = fast.encode(data);
           eql(enc, slow.encode(data), `encode(${bits})`);
@@ -170,8 +170,8 @@ it('slow parity: rfc4648 chains', () => {
 
 it('slow parity: bech32 words', () => {
   const slowWords = radix2Slow(5);
-  fc.assert(
-    fc.property(fc.uint8Array({ maxLength: 256 }), (data) => {
+  random.assert(
+    random.property(random.uint8Array({ maxLength: 256 }), (data) => {
       const words = bech32.toWords(data);
       eql(words, slowWords.encode(data), 'toWords');
       eql(bech32.fromWords(words), slowWords.decode(words), 'fromWords');
@@ -179,14 +179,17 @@ it('slow parity: bech32 words', () => {
     FC_OPTS
   );
   // Same canonical-padding rejections as the slow version
-  fc.assert(
-    fc.property(fc.array(fc.integer({ min: 0, max: 31 }), { maxLength: 64 }), (words) => {
-      eqlOutcome(
-        outcome(() => bech32.fromWords(words)),
-        outcome(() => slowWords.decode(words)),
-        `fromWords [${words}]`
-      );
-    }),
+  random.assert(
+    random.property(
+      random.array(random.integer({ min: 0, max: 31 }), { maxLength: 64 }),
+      (words) => {
+        eqlOutcome(
+          outcome(() => bech32.fromWords(words)),
+          outcome(() => slowWords.decode(words)),
+          `fromWords [${words}]`
+        );
+      }
+    ),
     FC_OPTS
   );
   // Out-of-range words throw. For negatives this is a deliberate fix: the slow version
@@ -199,9 +202,9 @@ it('slow parity: bech32 words', () => {
 });
 
 it('slow parity: bech32 alphabet + checksum', () => {
-  const words5 = fc.array(fc.integer({ min: 0, max: 31 }), { minLength: 0, maxLength: 64 });
-  fc.assert(
-    fc.property(words5, (words) => {
+  const words5 = random.array(random.integer({ min: 0, max: 31 }), { minLength: 0, maxLength: 64 });
+  random.assert(
+    random.property(words5, (words) => {
       // encode() path feeds number[] words through the fast alphabet
       const encoded = bech32.encode('bc', words, false);
       const slowPayload = BECH_ALPHABET_SLOW.encode(words);
