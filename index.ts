@@ -1315,11 +1315,16 @@ const _isWellFormedShim = (str: string): boolean => {
     return false;
   }
 };
-const _isWellFormed: (str: string) => boolean = /* @__PURE__ */ (() =>
-  // Pick the native check once so utf8.decode doesn't re-probe String.prototype on every call.
-  typeof ('' as any).isWellFormed === 'function'
-    ? (str) => (str as any).isWellFormed()
-    : _isWellFormedShim)();
+const _isWellFormed = (str: string): boolean =>
+  // Probe the actual string at call time. Resolving the native check once at
+  // module load lets a bundler that minifies against V8 (e.g. Metro targeting
+  // Hermes) constant-fold the probe to the native branch and bake it in - which
+  // then throws on Hermes, where String.prototype.isWellFormed is absent.
+  // Probing the runtime argument cannot be folded away, so each engine picks
+  // the branch that actually works.
+  typeof (str as any).isWellFormed === 'function'
+    ? (str as any).isWellFormed()
+    : _isWellFormedShim(str);
 // This fallback stays small because strict UTF-8 only needs fatal decoding plus well-formed
 // UTF-16 checks, not the replacement, streaming, or legacy-encoding behavior of full platform
 // text codecs.
